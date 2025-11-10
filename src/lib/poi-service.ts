@@ -109,3 +109,4 @@ export async function getCafesInParkPolygon() {
 
 // Optional: Run the example function to test
 getCafesInParkPolygon();
+export type { OverpassElement };
