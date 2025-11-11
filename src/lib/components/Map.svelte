@@ -16,8 +16,15 @@
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    map.on('click', (e: any) => {
-      console.log(e);
+    map.on('click', async (e: L.LeafletMouseEvent) => {
+      let response = await fetch(`/api/isochrone`, {
+        method: 'POST',
+        body: JSON.stringify({ locations: [[e.latlng.lng, e.latlng.lat]], range: [300, 200] }),
+      });
+      let data = await response.json();
+      let geojson = L.geoJSON(data);
+      geojson.addTo(map);
+      console.log(data);
     });
   });
 
