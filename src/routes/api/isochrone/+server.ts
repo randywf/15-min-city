@@ -2,13 +2,19 @@ import type { RequestHandler } from '@sveltejs/kit';
 import { XMLHttpRequest } from 'xmlhttprequest';
 import { OPENROUTESERVICE_API_KEY } from '$env/static/private';
 
+interface IsochroneRequest {
+  locations: [number, number][];
+  range: number[];
+  profile: 'foot-walking' | 'cycling-regular' | 'wheelchair';
+}
+
 export const POST: RequestHandler = async({ request }: { request: Request }) => {
-  const body = await request.json();
+  const body: IsochroneRequest = await request.json();
 
   return await new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
 
-    xhr.open('POST', 'https://api.openrouteservice.org/v2/isochrones/foot-walking', true);
+    xhr.open('POST', `https://api.openrouteservice.org/v2/isochrones/${body.profile}`, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.setRequestHeader('Accept', 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8');
     xhr.setRequestHeader('Authorization', OPENROUTESERVICE_API_KEY);
