@@ -17,14 +17,23 @@
     }).addTo(map);
 
     map.on('click', async (e: L.LeafletMouseEvent) => {
+      let profile = 'foot-walking';
+      let range = [5 * 60, 10 * 60, 15 * 60];
+      let body = {
+        locations: [[e.latlng.lng, e.latlng.lat]],
+        range: range,
+        range_type: 'time',
+        profile: profile
+      };
       let response = await fetch(`/api/isochrone`, {
         method: 'POST',
-        body: JSON.stringify({ locations: [[e.latlng.lng, e.latlng.lat]], range: [300, 200] }),
+        body: JSON.stringify(body)
       });
       let data = await response.json();
-      let geojson = L.geoJSON(data);
-      geojson.addTo(map);
-      console.log(data);
+      data.features.forEach((feature: GeoJSON.Feature) => {
+        let geojson = L.geoJSON(feature.geometry);
+        geojson.addTo(map);
+      });
     });
   });
 
