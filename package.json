@@ -23,6 +23,7 @@
 		"vite": "^7.1.10"
 	},
 	"dependencies": {
-		"leaflet": "^1.9.4"
+		"leaflet": "^1.9.4",
+		"xmlhttprequest": "^1.8.0"
 	}
 }
