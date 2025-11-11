@@ -1,14 +1,14 @@
-<script>
+<script lang="ts">
   import { onMount } from 'svelte';
 
-  let mapDiv;
+  let mapDiv!: HTMLDivElement;
 
   // Run once when the component is first added to the page
   onMount(async () => {
-    const L = (await import('leaflet')).default;
+    const L = await import('leaflet');
     await import('leaflet/dist/leaflet.css');
     // Create the map
-    const map = L.map(mapDiv).setView([51.505, -0.09], 13); // Center on London
+    const map = L.map(mapDiv).setView([51.96, 7.62], 12);
 
     // Add map tiles (the visual layer)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -16,12 +16,11 @@
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // Add a marker
-    L.marker([51.505, -0.09])
-      .addTo(map)
-      .bindPopup('Hello from London!')
-      .openPopup();
+    map.on('click', (e: any) => {
+      console.log(e);
+    });
   });
+
 </script>
 
 <style>
