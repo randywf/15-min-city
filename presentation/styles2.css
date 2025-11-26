@@ -1,0 +1,46 @@
+body, html, .reveal {
+  background-color: #071025;
+}
+
+.reveal .slides section,
+.reveal .slides section p,
+.reveal .slides section li {
+  color: #e8eef6;
+}
+
+.reveal h1, .reveal h2, .reveal h3 {
+  color: #4DA3FF;
+  text-shadow: 0 0 8px rgba(77,163,255,0.18);
+}
+
+.blue {
+  color: #4DA3FF;
+  font-weight: 600;
+}
+
+.reveal .slides section {
+  min-height: 100vh;
+  padding: 2em 1em;
+}
+
+.reveal code, .reveal pre {
+  background: rgba(255,255,255,0.04);
+  color: #ffd580;
+  border-radius: 4px;
+  padding: 0.08em 0.25em;
+}
+
+.reveal a {
+  color: #78c3ff;
+  text-decoration: underline;
+}
+
+.reveal table {
+  font-size: 0.8em;           /* scale table text */
+  width: 80%;                 /* table width */
+  display: block;             /* needed for max-height & scroll */
+  max-height: 60vh;           /* limits table height to 60% of viewport */
+  overflow-y: auto;           /* vertical scroll if table too tall */
+  padding-bottom: 2em;        /* space at bottom of scroll window */
+  margin-bottom: 2em;         /* extra breathing room below table */
+}

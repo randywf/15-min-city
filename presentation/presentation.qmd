@@ -1,0 +1,122 @@
+---
+title: "15 Minute City"
+format:
+  revealjs:
+    css: styles2.css
+    center: false
+    self-contained: true
+execute:
+  echo: false
+  warning: false
+  error: false
+  r: true
+---
+
+## Team Members
+
+Randy\
+Phillip\
+Adil\
+Phil\
+Lauren
+
+------------------------------------------------------------------------
+
+## Problem Definition
+
+-   What amenities can I reach within 15 minutes?
+
+-   How does that change if I walk, bike, or take the bus?
+
+-   What grocery stores, libraries, or parks can I reach?
+
+------------------------------------------------------------------------
+
+## Objectives
+
+-   Explore the city of Münster.
+
+-   Optimize a 15 minute trip.
+
+-   Reach desired amenities, via specific travel mode.
+
+------------------------------------------------------------------------
+
+## Target Audience
+
+Anyone who benefits from 15 minute excursions, specific to their situation:
+
+-   New residents: selecting a livable neighborhood
+
+-   Current residents: optimize amenity choices
+
+-   Tourists: quick trips around the hotel
+
+------------------------------------------------------------------------
+
+## Description (Initial Idea)
+
+1.  Application opens to a map view.
+
+2.  User clicks location on map and chooses travel mode.
+
+3.  Isochrone appears around selected location.
+
+4.  Side menu pop-up with destination categories.
+
+5.  User selects categories, pins appear in isochrone.
+
+6.  User selects pin and a detailed travel route appears on map.
+
+------------------------------------------------------------------------
+
+## Data
+
+-   Map: OSM Leaflet
+
+-   POIs: OverPass API
+
+-   Routing: R5 Functionality
+
+------------------------------------------------------------------------
+
+## Visualization (Time & Space)
+
+Custom styling keeps things clean and modern.
+
+------------------------------------------------------------------------
+
+## Progress & Project Management
+
+```{r}
+df <- read.delim("Backlog.tsv", header = TRUE, sep = "\t")
+df$URL <- NULL
+df$Priority <- NULL
+df$Estimate <- NULL
+df$Size <- NULL
+knitr::kable(df, caption = "Project Backlog", align = "l")
+```
+
+------------------------------------------------------------------------
+
+## Demonstration
+
+-   Jump to Miro Board, OR
+
+-   Share working interface
+
+------------------------------------------------------------------------
+
+## Literature Review
+
+-   Add entry for each member's paper
+
+-   XX
+
+------------------------------------------------------------------------
+
+## Plans (Before Next Sprint)
+
+-   Next steps here
+
+-   XX
