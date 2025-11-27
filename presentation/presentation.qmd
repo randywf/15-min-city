@@ -82,7 +82,9 @@ Anyone who benefits from 15 minute excursions, specific to their situation:
 
 ## Visualization (Time & Space)
 
-Custom styling keeps things clean and modern.
+-   Time: 15 minute travel time
+
+-   Space: isochrones visualizing 15 minute travel zone
 
 ------------------------------------------------------------------------
 
@@ -117,6 +119,6 @@ knitr::kable(df, caption = "Project Backlog", align = "l")
 
 ## Plans (Before Next Sprint)
 
--   Next steps here
+-   Evalutation
 
--   XX
+-   UI improvements
