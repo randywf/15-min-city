@@ -18,3 +18,11 @@ Lauren - Accessibility mapped by isochrones isochrone area: set of all points re
 Adil - Isochrones as tools for planning, design, & communication visually clear and appealing isochrones  
 Phil - Schematized travel-time maps reducing visual complexity of isochrones  
 Phillip - From desktop GIS tools to web application lightweight, user-friendly  
+
+## Pressentation Speakers
+Phillip - Introduction (Slides 1 to 5)  
+Lauren - Related work (Slides 6 to 10)  
+Phil - Implementation (Slides 11 to 13)  
+Randy - Project Management (Slide 14)  
+Phil - Demonstration (Slide 15)  
+Adil - Next Steps (Slide 16)  
