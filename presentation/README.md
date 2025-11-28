@@ -11,3 +11,10 @@
 - `presentation.qmd` → Edit slide text and content here
 - `styles2.css` → custom styling for slides
 - `Backlog.tsv` → project backlog extracted from github, update as needed
+
+## Assigned Papers  
+Randy - Space-time prisms anchored to place-based origin accessibility defined by temporal and spatial constraints
+Lauren - Accessibility mapped by isochrones isochrone area: set of all points reachable ≤ time limit
+Adil - Isochrones as tools for planning, design, & communication visually clear and appealing isochrones
+Phil - Schematized travel-time maps reducing visual complexity of isochrones
+Phillip - From desktop GIS tools to web application lightweight, user-friendly
