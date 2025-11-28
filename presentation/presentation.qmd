@@ -10,6 +10,7 @@ execute:
   warning: false
   error: false
   r: true
+bibliography: references.bib
 ---
 
 ## Team Members
@@ -70,13 +71,76 @@ Anyone who benefits from 15 minute excursions, specific to their situation:
 
 ------------------------------------------------------------------------
 
+## Related Work
+
+Space-time prisms anchored to place-based origin\
+Accessibility defined by temporal and spatial constraints\
+<span style="font-size: 0.3em;">@Delafontaine2011</span>
+<iframe src="Literature/delafontaine_selected.pdf" width="100%" height="550px"></iframe>
+
+------------------------------------------------------------------------
+
+## Related Work
+
+Accessibility mapped by isochrones\
+Isochrone area: set of all points reachable ≤ time limit\
+<span style="font-size: 0.3em;">@OSullivan2000</span>
+<iframe src="Literature/osullivan.pdf" width="100%" height="550px"></iframe>
+
+------------------------------------------------------------------------
+
+## Related Work
+
+Isochrones as tools for planning, design, & communication\
+Visually clear and appealing isochrones\
+<span style="font-size: 0.3em;">@Dovey2017</span>
+<iframe src="Literature/dovey_selected.pdf" width="100%" height="550px"></iframe>
+
+------------------------------------------------------------------------
+
+## Related Work
+
+Schematized travel-time maps\
+Reducing visual complexity of isochrones\
+<span style="font-size: 0.3em;">@Forsch2021</span>
+<iframe src="Literature/forsch_selected.pdf" width="100%" height="550px"></iframe>
+
+------------------------------------------------------------------------
+
+## Related Work
+
+From desktop GIS tools to web application\
+Lightweight, user-friendly\
+<span style="font-size: 0.3em;">@Gortana2014</span>
+<iframe src="Literature/2014-isoscope.pdf" width="100%" height="550px"></iframe>
+
+------------------------------------------------------------------------
+
+## Related Work - Conclusions
+
+-   Existing desktop tools are more complex for beginners
+
+-   We will provide a user friendly, lightweight web application
+
+    +---------------------------------------+--------------------------------------------------------------------------------------------+
+    | Challenges                            | Potential Solutions                                                                        |
+    +=======================================+============================================================================================+
+    | -   clear & accurate isochrones       | -   OSM                                                                                    |
+    |                                       |                                                                                            |
+    | -   multi-modal functionality         | -   POI API                                                                                |
+    |                                       |                                                                                            |
+    | -   Resource intensity (computations) | -   [R^5^py](https://r5py.readthedocs.io/stable/) python interface for R^5^ routing engine |
+    +---------------------------------------+--------------------------------------------------------------------------------------------+
+
+------------------------------------------------------------------------
+
 ## Data
 
 -   Map: OSM Leaflet
 
 -   POIs: OverPass API
 
--   Routing: R5 Functionality
+-   Routing: R^5^py
 
 ------------------------------------------------------------------------
 
@@ -103,22 +167,19 @@ knitr::kable(df, caption = "Project Backlog", align = "l")
 
 ## Demonstration
 
--   Jump to Miro Board, OR
-
--   Share working interface
-
-------------------------------------------------------------------------
-
-## Literature Review
-
--   Add entry for each member's paper
-
--   XX
+-   Share interface prototype
 
 ------------------------------------------------------------------------
 
 ## Plans (Before Next Sprint)
 
--   Evalutation
+-   Evaluation
 
 -   UI improvements
+
+------------------------------------------------------------------------
+
+## References
+
+::: {#refs}
+:::

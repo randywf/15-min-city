@@ -3,7 +3,7 @@
 ## How to build
 
 1. Install Quarto
-3. Render the slides with: presentation.qmd --to revealjs
+3. Render the slides with: quarto render yourdirectory/presentation.qmd --to revealjs
 4. Open the resulting html in a browser to present.
 
 ## Files
