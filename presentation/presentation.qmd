@@ -35,9 +35,9 @@ Lauren
 
 ## Objectives
 
--   Explore the city of Münster.
+-   Find an ideal place to stay in Münster.
 
--   Optimize a 15 minute trip.
+-   Calculate a score based on available POIs.
 
 -   Reach desired amenities, via specific travel mode.
 
@@ -45,13 +45,9 @@ Lauren
 
 ## Target Audience
 
-Anyone who benefits from 15 minute excursions, specific to their situation:
-
 -   New residents: selecting a livable neighborhood
 
--   Current residents: optimize amenity choices
-
--   Tourists: quick trips around the hotel
+-   Current residents: amenity choices
 
 ------------------------------------------------------------------------
 
