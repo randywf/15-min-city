@@ -20,9 +20,9 @@ Phil - Schematized travel-time maps reducing visual complexity of isochrones
 Phillip - From desktop GIS tools to web application lightweight, user-friendly  
 
 ## Pressentation Speakers
-Phillip - Introduction (Slides 1 to 5)  
-Lauren - Related work (Slides 6 to 10)  
-Phil - Implementation (Slides 11 to 13)  
-Randy - Project Management (Slide 14)  
-Phil - Demonstration (Slide 15)  
-Adil - Next Steps & References (Slides 16, 17)  
+Phillip - Introduction (Slides 1 to 5) (2 minutes)  
+Lauren - Related work (Slides 6 to 10) (2 minutes)  
+Phil - Implementation (Slides 11 to 13) (2 minutes)  
+Randy - Project Management (Slide 14) (1 minute)  
+Phil - Demonstration (Slide 15) (2 minutes)  
+Adil - Next Steps & References (Slides 16, 17) (1 minute)  
