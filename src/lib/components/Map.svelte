@@ -6,6 +6,7 @@
 	import bus from "$lib/assets/bus.svg?raw";
 	import location from "$lib/assets/location.svg?raw";
 	import search from "$lib/assets/search.svg?raw";
+    import {getPointToPoi} from "$lib/services/full-service";
 
 	let mapDiv!: HTMLDivElement;
 	let sidebarOpen = false;
@@ -127,18 +128,15 @@
 				range_type: "time",
 				profile: profile,
 			};
-
-			let response = await fetch(`/api/isochrone`, {
-				method: "POST",
-				body: JSON.stringify(body),
-			});
-
-			let data = await response.json();
-			data.features.forEach((feature: GeoJSON.Feature) => {
-				let geojson = L.geoJSON(feature.geometry);
-				geojson.addTo(map);
-			});
 		});
+
+        let response = await getPointToPoi(userLat, userLng, "walk", 60);
+
+        let data = await response.json();
+        data.features.forEach((feature: GeoJSON.Feature) => {
+            let geojson = L.geoJSON(feature.geometry);
+            geojson.addTo(map);
+        });
 
 		// Add zoom control to bottom right
 		map.zoomControl.setPosition("bottomright");
@@ -150,7 +148,7 @@
 	});
 
 	// called when the button is clicked
-	function requestBrowserLocation() {
+	 async function requestBrowserLocation() {
 		if (!L || !map) return; // safety
 
 		if (!("geolocation" in navigator)) {
@@ -158,7 +156,7 @@
 			return;
 		}
 
-		navigator.geolocation.getCurrentPosition(
+		 navigator.geolocation.getCurrentPosition(
 			(pos) => {
 				const { latitude, longitude } = pos.coords;
 
