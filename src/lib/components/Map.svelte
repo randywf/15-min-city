@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { onMount } from "svelte";
+
 	import walk from "$lib/assets/walk.svg?raw";
 	import bicycle from "$lib/assets/bicycle.svg?raw";
 	import car from "$lib/assets/car.svg?raw";
 	import bus from "$lib/assets/bus.svg?raw";
 	import location from "$lib/assets/location.svg?raw";
 	import search from "$lib/assets/search.svg?raw";
+	import { getPointToPoi } from "$lib/services/isochrone-service";
 
 	let mapDiv!: HTMLDivElement;
 	let sidebarOpen = false;
@@ -16,25 +18,27 @@
 	let userAccuracy: number | null = null;
 	let selectingLocation = false; // select location mode
 	let selectedMarker: any = null; // store last selected location
+	let area_oi: import("leaflet").GeoJSON<any> | null = null; // store area of interest layer
+	let poiMarkers: any[] = [];
 
 	// Leaflet map and library reference (declared here to be accessible in functions)
 	let L: typeof import("leaflet") | null = null;
 	let map: import("leaflet").Map | null = null;
-	let userMarker: import("leaflet").Marker | null = null;
+	let userMarker: import("leaflet").Layer | null = null;
 
 	const transportModes = [
 		{
-			name: "Walking",
-			value: "walking",
+			name: "walk",
+			value: "walk",
 			icon: walk,
 		},
 		{
-			name: "Bicycle",
-			value: "bicycle",
+			name: "bike",
+			value: "bike",
 			icon: bicycle,
 		},
 		{
-			name: "Car",
+			name: "car",
 			value: "car",
 			icon: car,
 		},
@@ -108,36 +112,24 @@
 				// Remove old selected marker (if any)
 				if (userMarker) {
 					map!.removeLayer(userMarker);
-					// add the location marker
 				}
+				userMarker = L!
+					.circleMarker([lat, lng], {
+						radius: 8,
+						color: "red",
+						weight: 2,
+						fillColor: "red",
+						fillOpacity: 0.9,
+					})
+					.addTo(map!); // add new user marker
 
-				// Add new marker and remember it
-				userMarker = L!.marker([lat, lng]).addTo(map!);
+				// remove previous markers and area
+				if (area_oi) clearMapLayers();
+				drawPointToPoi(lat, lng, "walk"); // add the pois in the area
 
 				selectingLocation = false;
 				return;
 			}
-
-			// Normal behaviour (no select mode): calculate isochrone on click
-			let profile = "foot-walking";
-			let range = [5 * 60, 10 * 60, 15 * 60];
-			let body = {
-				locations: [[e.latlng.lng, e.latlng.lat]],
-				range: range,
-				range_type: "time",
-				profile: profile,
-			};
-
-			let response = await fetch(`/api/isochrone`, {
-				method: "POST",
-				body: JSON.stringify(body),
-			});
-
-			let data = await response.json();
-			data.features.forEach((feature: GeoJSON.Feature) => {
-				let geojson = L.geoJSON(feature.geometry);
-				geojson.addTo(map);
-			});
 		});
 
 		// Add zoom control to bottom right
@@ -151,10 +143,10 @@
 
 	// called when the button is clicked
 	function requestBrowserLocation() {
-		if (!L || !map) return; // safety
+		if (!L || !map) return;
 
 		if (!("geolocation" in navigator)) {
-			alert("Geolocation is not available in this browser.");
+			alert("Geolocation not supported.");
 			return;
 		}
 
@@ -167,17 +159,25 @@
 
 				map!.setView([latitude, longitude], 15);
 
-				// remove old marker if any
-				if (userMarker) {
-					map!.removeLayer(userMarker);
-				}
+				// remove previous marker and area
+				if (userMarker) map!.removeLayer(userMarker);
+				userMarker = L!
+					.circleMarker([latitude, longitude], {
+						radius: 8,
+						color: "red",
+						weight: 2,
+						fillColor: "red",
+						fillOpacity: 0.9,
+					})
+					.addTo(map!); // add new user marker
 
-				// add new marker
-				userMarker = L!.marker([latitude, longitude]).addTo(map!);
+				// remove previous markers and area
+				if (area_oi) clearMapLayers();
+				drawPointToPoi(latitude, longitude, "walk"); // add the pois in the area
 			},
 			(err) => {
-				console.error("Location error:", err);
-				alert("Could not get your location.");
+				console.error(err);
+				alert("Could not retrieve location.");
 			},
 			{ enableHighAccuracy: true },
 		);
@@ -189,6 +189,95 @@
 			storeMap.setView([userLat, userLng], 16, { animate: true });
 		} else {
 			alert("Location not available yet");
+		}
+	}
+
+	async function drawPointToPoi(
+		latitude: number,
+		longitude: number,
+		mode: "walk" | "bike" | "car",
+	) {
+		try {
+			const data = await getPointToPoi(longitude, latitude, mode, 15);
+
+			console.log("Point-to-poi response: ", data);
+
+			// --- Draw polygon ---
+			if (data.polygon) {
+				const geojsonPolygon = polygonStringToGeoJSON(data.polygon);
+				area_oi = L!.geoJSON(geojsonPolygon).addTo(map!);
+			}
+
+			// --- Add amenities ---
+			if (data.amenities?.length) {
+				data.amenities.forEach((poi: any) => {
+					if (poi.lat && poi.lon) {
+						const name = poi.tags?.name || "Unnamed location";
+
+						const marker = L!
+							.marker([poi.lat, poi.lon])
+							.addTo(map!)
+							.bindPopup(`<b>${name}</b>`);
+
+						poiMarkers.push(marker); // if you're storing them to remove later
+					}
+				});
+			}
+		} catch (err) {
+			console.error(err);
+			alert("Could not load point-to-poi result");
+		}
+	}
+
+	// Convert polygon string to GeoJSON Feature
+	function polygonStringToGeoJSON(
+		polygonString: string,
+	): GeoJSON.Feature<GeoJSON.Polygon> {
+		const coords: [number, number][] = polygonString
+			.trim()
+			.split(" ")
+			.reduce((arr: [number, number][], value, index, src) => {
+				// src is ["lat0", "lon0", "lat1", "lon1", ...]
+				if (index % 2 === 0) {
+					// Leaflet / GeoJSON want [lon, lat]
+					const lat = parseFloat(value);
+					const lon = parseFloat(src[index + 1]);
+					arr.push([lon, lat]);
+				}
+				return arr;
+			}, []);
+
+		// Close polygon loop
+		if (coords.length > 0) {
+			coords.push(coords[0]);
+		}
+
+		return {
+			type: "Feature",
+			geometry: {
+				type: "Polygon",
+				coordinates: [coords],
+			},
+			properties: {},
+		};
+	}
+
+	function clearMapLayers() {
+		// Remove markers
+		poiMarkers.forEach((marker) => map!.removeLayer(marker));
+		poiMarkers = [];
+
+		// Remove polygons
+		map!.removeLayer(area_oi!);
+	}
+
+	function handleModeSelect(selectedMode: string) {
+		mode = selectedMode;
+
+		// Only redraw if user already picked a location
+		if (userLat && userLng) {
+			if (area_oi) clearMapLayers(); // clear previous layers
+			drawPointToPoi(userLat, userLng, selectedMode as any);
 		}
 	}
 </script>
@@ -246,7 +335,7 @@
 				class:border-gray-300={mode === t.value}
 				class:bg-gray-100={mode !== t.value}
 				class:text-gray-300={mode !== t.value}
-				on:click={() => (mode = t.value)}
+				on:click={() => handleModeSelect(t.value)}
 			>
 				<span class="w-6 h-6 [&>svg]:w-full [&>svg]:h-full"
 					>{@html t.icon}</span
