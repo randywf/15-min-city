@@ -204,8 +204,7 @@
 
 			// --- Draw polygon ---
 			if (data.polygon) {
-				const geojsonPolygon = polygonStringToGeoJSON(data.polygon);
-				area_oi = L!.geoJSON(geojsonPolygon).addTo(map!);
+				area_oi = L!.geoJSON(data.polygon).addTo(map!);
 			}
 
 			// --- Add amenities ---
@@ -227,39 +226,6 @@
 			console.error(err);
 			alert("Could not load point-to-poi result");
 		}
-	}
-
-	// Convert polygon string to GeoJSON Feature
-	function polygonStringToGeoJSON(
-		polygonString: string,
-	): GeoJSON.Feature<GeoJSON.Polygon> {
-		const coords: [number, number][] = polygonString
-			.trim()
-			.split(" ")
-			.reduce((arr: [number, number][], value, index, src) => {
-				// src is ["lat0", "lon0", "lat1", "lon1", ...]
-				if (index % 2 === 0) {
-					// Leaflet / GeoJSON want [lon, lat]
-					const lat = parseFloat(value);
-					const lon = parseFloat(src[index + 1]);
-					arr.push([lon, lat]);
-				}
-				return arr;
-			}, []);
-
-		// Close polygon loop
-		if (coords.length > 0) {
-			coords.push(coords[0]);
-		}
-
-		return {
-			type: "Feature",
-			geometry: {
-				type: "Polygon",
-				coordinates: [coords],
-			},
-			properties: {},
-		};
 	}
 
 	function clearMapLayers() {
