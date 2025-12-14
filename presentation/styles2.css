@@ -20,7 +20,7 @@ body, html, .reveal {
 
 .reveal .slides section {
   min-height: 100vh;
-  padding: 2em 1em;
+  padding: 1em 1em;
 }
 
 .reveal code, .reveal pre {

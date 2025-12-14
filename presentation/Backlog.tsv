@@ -1,18 +1,18 @@
 Title	URL	Assignees	Status	Priority	Estimate	Size
-Proper Visualization on map	https://github.com/randywf/15-min-city/issues/16					
-Score Visualization	https://github.com/randywf/15-min-city/issues/18					
-UI: Gamification	https://github.com/randywf/15-min-city/issues/20					
-Pretty visualization for Mapping	https://github.com/randywf/15-min-city/issues/15					
-UI: Selection of transport	https://github.com/randywf/15-min-city/issues/21	Aadilwaris	Backlog			
-UI: Layer-Selection	https://github.com/randywf/15-min-city/issues/22	Aadilwaris	Backlog			
 UI: Search for the address	https://github.com/randywf/15-min-city/issues/23	pmunding	Backlog			
 Frontend: Visualization of different amenities	https://github.com/randywf/15-min-city/issues/28	Aadilwaris	Backlog			
 UI: Get Location Button	https://github.com/randywf/15-min-city/issues/36	pmunding	Backlog			
+Pretty visualization for Mapping	https://github.com/randywf/15-min-city/issues/15		Backlog			
+UI: Gamification	https://github.com/randywf/15-min-city/issues/20		Backlog			
+Score Visualization	https://github.com/randywf/15-min-city/issues/18		Backlog			
+Proper Visualization on map	https://github.com/randywf/15-min-city/issues/16		Backlog			
 Backend: Score Calculation	https://github.com/randywf/15-min-city-api/issues/5	Hex-commits, pmunding	Ready			
 Backend: R5-Functionality for reachability	https://github.com/randywf/15-min-city-api/issues/4	Aadilwaris, laurenfissel11-ux, randywf	In progress			
 Backend & Frontend: Connect Backend to frontend	https://github.com/randywf/15-min-city/issues/29	Aadilwaris, laurenfissel11-ux, randywf	In progress			
 Add Leaflet-Map to app	https://github.com/randywf/15-min-city/issues/12	laurenfissel11-ux, randywf	In review			
 Backend: Avoid Timeout on POI-Request	https://github.com/randywf/15-min-city-api/issues/6	Hex-commits, pmunding	Done			
+UI: Selection of transport	https://github.com/randywf/15-min-city/issues/21	Aadilwaris	Done			
+UI: Layer-Selection	https://github.com/randywf/15-min-city/issues/22	Aadilwaris	Done			
 Backend: Infrastructure & Working environment	https://github.com/randywf/15-min-city/issues/25		Done			
 UI integration for Reachability	https://github.com/randywf/15-min-city-api/pull/1	randywf	Done			
 POI-Requests from Overpass API	https://github.com/randywf/15-min-city/issues/13	Hex-commits, pmunding	Done			
@@ -20,6 +20,7 @@ Backend: Diversify the POI-Function	https://github.com/randywf/15-min-city-api/i
 POI API Placeholder Function	https://github.com/randywf/15-min-city/issues/33		Done			
 Score API Placeholder Function	https://github.com/randywf/15-min-city/issues/34		Done			
 Feature/poi	https://github.com/randywf/15-min-city-api/pull/7		Done			
+Redirection to current location	https://github.com/randywf/15-min-city/issues/38	Aadilwaris	Done			
 Create Isochrones-API-Access	https://github.com/randywf/15-min-city/issues/14	laurenfissel11-ux, randywf	Dropped			
 OpenAPI-Document	https://github.com/randywf/15-min-city/issues/31		Dropped			
 Backend: Score Calculation	https://github.com/randywf/15-min-city/issues/17	Hex-commits, pmunding	Dropped			
