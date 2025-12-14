@@ -23,6 +23,8 @@
 		"vite": "^7.1.10"
 	},
 	"dependencies": {
+		"chart.js": "^4.5.1",
+		"chartjs-plugin-dragdata": "^2.3.1",
 		"leaflet": "^1.9.4",
 		"xmlhttprequest": "^1.8.0"
 	}
