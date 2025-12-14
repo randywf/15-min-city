@@ -204,7 +204,7 @@
       const data = await getPointToPoi(longitude, latitude, mode, 15);
 
       console.log("Point-to-poi response: ", data);
-      countAmenities(data.amenities) // call to count amenities
+      counts = countAmenities(data.amenities ?? []); // call to count amenities
 
       // --- Draw polygon ---
       if (data.polygon) {
@@ -291,7 +291,7 @@
 
   import Score from "$lib/components/Score.svelte";
 
-  // Amenity categories and their corresponding OSM tag values
+  // count amenities by category
   const AMENITY_CATEGORIES = {
     Health: ["clinic", "hospital", "pharmacy"],
 
@@ -321,15 +321,24 @@
     ],
   };
 
-  type AmenityCounts = Record<string, number>;
+  type AmenityCounts = {
+    education: number;
+    sports: number;
+    shopping: number;
+    restaurants: number;
+    health: number;
+  };
+
+  let counts: AmenityCounts | null = null;
 
   function countAmenities(amenities: any[]): AmenityCounts {
-    const counts: AmenityCounts = {};
-
-    // Initialize all categories with 0
-    Object.keys(AMENITY_CATEGORIES).forEach((category) => {
-      counts[category] = 0;
-    });
+    const result = {
+      education: 0,
+      sports: 0,
+      shopping: 0,
+      restaurants: 0,
+      health: 0,
+    };
 
     amenities.forEach((poi) => {
       const tagValue =
@@ -340,16 +349,21 @@
 
       if (!tagValue) return;
 
-      for (const [category, values] of Object.entries(AMENITY_CATEGORIES)) {
-        if (values.includes(tagValue)) {
-          counts[category]++;
-          break;
-        }
-      }
+      if (AMENITY_CATEGORIES.Education.includes(tagValue)) result.education++;
+      else if (AMENITY_CATEGORIES.Sports.includes(tagValue)) result.sports++;
+      else if (AMENITY_CATEGORIES.Shopping.includes(tagValue))
+        result.shopping++;
+      else if (AMENITY_CATEGORIES.Restaurants.includes(tagValue))
+        result.restaurants++;
+      else if (AMENITY_CATEGORIES.Health.includes(tagValue)) result.health++;
     });
 
-    console.log("Amenity counts: ", counts);
-    return counts;
+    console.log("Amenity counts:", result);
+    return result;
+  }
+
+  function iconClass(value: number) {
+    return value > 0 ? "text-green-600" : "text-gray-400";
   }
 </script>
 
@@ -431,7 +445,118 @@
       <!-- ... your existing buttons ... -->
     {/each}
   </div>
+
+  <!-- Score Component -->
   <Score />
+
+  <hr class="h-px my-8 bg-neutral-secondary-medium border-1">
+
+  <!-- Amenity Counts -->
+  {#if counts}
+    <ul class="max-w-md space-y-1 text-body list-inside">
+      <!-- Education -->
+      <li class="flex items-center">
+        <svg
+          class="w-4 h-4 me-1.5 shrink-0 {iconClass(counts.education)}"
+          aria-hidden="true"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M8.5 11.5 11 14l4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+          />
+        </svg>
+        Education: {counts.education}
+      </li>
+
+      <!-- Sports -->
+      <li class="flex items-center">
+        <svg
+          class="w-4 h-4 me-1.5 shrink-0 {iconClass(counts.sports)}"
+          aria-hidden="true"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M8.5 11.5 11 14l4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+          />
+        </svg>
+        Sports: {counts.sports}
+      </li>
+
+      <!-- Shopping -->
+      <li class="flex items-center">
+        <svg
+          class="w-4 h-4 me-1.5 shrink-0 {iconClass(counts.shopping)}"
+          aria-hidden="true"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M8.5 11.5 11 14l4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+          />
+        </svg>
+        Shopping: {counts.shopping}
+      </li>
+
+      <!-- Restaurants -->
+      <li class="flex items-center">
+        <svg
+          class="w-4 h-4 me-1.5 shrink-0 {iconClass(counts.restaurants)}"
+          aria-hidden="true"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M8.5 11.5 11 14l4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+          />
+        </svg>
+        Restaurants: {counts.restaurants}
+      </li>
+
+      <!-- Health -->
+      <li class="flex items-center">
+        <svg
+          class="w-4 h-4 me-1.5 shrink-0 {iconClass(counts.health)}"
+          aria-hidden="true"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M8.5 11.5 11 14l4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+          />
+        </svg>
+        Health: {counts.health}
+      </li>
+    </ul>
+  {:else}
+    <p class="text-gray-400">Select location to see amenities</p>
+  {/if}
 </div>
 
 <!--button to zoom to location-->
