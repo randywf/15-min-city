@@ -244,11 +244,11 @@
 							selectedIcon = education;
 						}
 
-						else if (poi.tags?.leisure === 'park' ||
-								poi.tags?.amenity === 'park'
-							) {
-    							selectedIcon = park;
-						}
+						// else if (poi.tags?.leisure === 'park' ||
+						// 		poi.tags?.amenity === 'park'
+						// 	) {
+    				// 			selectedIcon = park;
+						// }
 
                         // Add more 'else if' blocks for other types
 
@@ -286,6 +286,10 @@
 			drawPointToPoi(userLat, userLng, selectedMode as any);
 		}
 	}
+
+  import Score from "$lib/components/Score.svelte";
+
+
 </script>
 
 <!--TOP NAVIGATION BAR-->
