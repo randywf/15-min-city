@@ -330,14 +330,6 @@
       <!-- ... your existing buttons ... -->
     {/each}
   </div>
-
-  <!-- Source - https://stackoverflow.com/a
-	Posted by Emilio Venegas
-	Retrieved 2025-12-11, License - CC BY-SA 4.0 -->
-  <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
-  <canvas id="radarCanvas" width="400" height="400"></canvas> -->
-
-  <!--Slider for adjusting the score-->
   <Score />
 
 </div>
