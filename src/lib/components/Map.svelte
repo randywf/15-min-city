@@ -7,6 +7,8 @@
 	import bus from "$lib/assets/bus.svg?raw";
 	import location from "$lib/assets/location.svg?raw";
 	import search from "$lib/assets/search.svg?raw";
+	import educationURL from '$lib/assets/education_rainbow.png'
+	import foodURL from '$lib/assets/food_Lime.png'
 	import { getPointToPoi } from "$lib/services/isochrone-service";
 
 	let mapDiv!: HTMLDivElement;
@@ -209,12 +211,50 @@
 
 			// --- Add amenities ---
 			if (data.amenities?.length) {
+
+				// Define all amenity icons
+				const food = L!.icon({
+					iconUrl: foodURL,
+					iconSize: [38, 57], // w:h = 1:1.5
+					iconAnchor: [22, 94],
+					popupAnchor: [-3, -76]
+				});
+
+				const education = L!.icon({
+					iconUrl: educationURL,
+					iconSize: [38, 57], // w:h = 1:1.5
+					iconAnchor: [22, 94],
+					popupAnchor: [-3, -76]
+				});
+
 				data.amenities.forEach((poi: any) => {
 					if (poi.lat && poi.lon) {
 						const name = poi.tags?.name || "Unnamed location";
 
+						// --- 1. LOGIC TO PICK THE ICON ---
+						// Start with a default
+						let selectedIcon = food;
+
+						// Check if educational institute
+						if (poi.tags?.amenity === 'school' ||
+							poi.tags?.amenity === 'university' ||
+							poi.tags?.amenity === 'college' ||
+							poi.tags?.amenity === 'kindergarten'
+						) {
+							selectedIcon = education;
+						}
+
+						else if (poi.tags?.leisure === 'park' ||
+								poi.tags?.amenity === 'park'
+							) {
+    							selectedIcon = park;
+						}
+
+                        // Add more 'else if' blocks for other types
+
+						// --- 2. CREATE MARKER WITH SELECTED ICON ---
 						const marker = L!
-							.marker([poi.lat, poi.lon])
+							.marker([poi.lat, poi.lon], { icon: selectedIcon })
 							.addTo(map!)
 							.bindPopup(`<b>${name}</b>`);
 
