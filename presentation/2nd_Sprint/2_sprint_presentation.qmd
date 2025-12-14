@@ -1,0 +1,79 @@
+---
+title: "15 Minute City"
+format:
+  revealjs:
+    theme: dark
+    slide-number: true
+    transition: fade
+    css: 2_sprint_styles.css
+    embed-resources: true
+---
+
+## Group Members
+
+Adil\
+Phil\
+Phillip\
+Randy\
+Lauren\
+Nimesh
+
+## Progress
+
+| Target Group                                     |
+|--------------------------------------------------|
+| New *Münuster* residents: selecting neighborhood |
+| Current *Münster* residents: nearby amenities    |
+
+## Progress continued
+
+| Planned Tasks | Status |
+| :--- | :--- |
+| POIs | [Done]{.border-done} |
+| Scoring | [In progress]{.border-wip} |
+| Routing / Isochrone | [In progress]{.border-wip} |
+| UI improvements | [In progress]{.border-wip} |
+| Heat map | [Planned]{.border-plan} |
+| Evaluation | [Planned]{.border-plan} |
+
+## Progress continued
+
+| Problems Encountered  | Tackled How?               |
+|-----------------------|----------------------------|
+| Overpass API too slow | Database for Münster POIs  |
+| Hosting               | University provided server |
+
+## Data (Updates)
+
+-   POIs update: stored in database
+    -   Münster only
+    -   Dropping Overpass API
+-   Scoring: - *insert connection to data here* -
+-   Routing: - *insert updates* -
+
+## Visualization (Updates)
+
+-   POI markers (NEW)
+    -   see upcoming demo!
+-   Scoring (NEW)
+    -   see upcoming demo!
+-   Isochrone - *insert updates* -
+
+## Demonstration
+
+Brief Demo!
+
+## Plans for Evaluation (User Feedback)
+
+-   Qualitative Evaluation
+-   Identify main usability problems
+-   ~ 5 Users
+-   Think-Aloud Protocol
+
+## Plans for Next Sprint
+
+-   Scoring
+-   Routing & Isochrone
+-   UI improvements
+-   Heat map
+-   Evaluations
