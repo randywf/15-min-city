@@ -22,8 +22,8 @@ Nimesh
 
 | Target Group                                     |
 |--------------------------------------------------|
-| New *Münuster* residents: selecting neighborhood |
-| Current *Münster* residents: nearby amenities    |
+| New **Münuster** residents: selecting neighborhood |
+| Current **Münster** residents: nearby amenities    |
 
 ## Progress continued
 
@@ -45,19 +45,18 @@ Nimesh
 
 ## Data (Updates)
 
--   POIs update: stored in database
+-   POIs: stored in database
     -   Münster only
     -   Dropping Overpass API
--   Scoring: - *insert connection to data here* -
--   Routing: - *insert updates* -
+-   Scoring: *-insert connection to data here-*
+-   Routing: *-insert updates-*
 
 ## Visualization (Updates)
 
--   POI markers (NEW)
-    -   see upcoming demo!
--   Scoring (NEW)
-    -   see upcoming demo!
--   Isochrone - *insert updates* -
+-   POI markers
+-   Scoring
+-   Isochrone *-insert updates-*
+-   Upcoming demo!
 
 ## Demonstration
 
@@ -72,8 +71,9 @@ Brief Demo!
 
 ## Plans for Next Sprint
 
--   Scoring
--   Routing & Isochrone
--   UI improvements
--   Heat map
+-   Github Issues In Progress & Planned\
+    -   Scoring
+    -   Routing & Isochrone
+    -   UI improvements
+    -   Heat map
 -   Evaluations
