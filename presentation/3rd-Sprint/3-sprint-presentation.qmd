@@ -1,0 +1,101 @@
+---
+title: "15 Minute City"
+format:
+  revealjs:
+    theme: dark
+    slide-number: true
+    transition: fade
+    css: 3-sprint-styles.css
+    embed-resources: true
+---
+
+## Group Members
+
+Adil\
+Phil\
+Phillip\
+Randy\
+Lauren\
+Nimesh
+
+## Target Group (Unchanged)
+
+| Target Group                                     |
+|--------------------------------------------------|
+| New Münster residents: selecting neighborhood |
+| Current Münster residents: nearby amenities |
+
+## Progress - Backend {.scrollable}
+
+| Tasks | Status |
+| :--- | :--- |
+| Pre-computation script | [Done]{.border-done} |
+| Identify bulk areas | [Done]{.border-done} |
+| Heatmap endpoint available | [Done]{.border-done} |
+| Pre-computation of isochrones | [Done]{.border-done} |
+| Limit amenities to a database query for each amenity | [Done]{.border-done} |
+| Database design for PostGIS | [Done]{.border-done} |
+| Saving scores in Backend | [Done]{.border-done} |
+| Add Postgis table for scores | [Done]{.border-done} |
+| Score calculation | [Done]{.border-done} |
+| Automate POI table creation and population | [Done]{.border-done} |
+
+## Progress - Problems
+
+| Problems Encountered  | Tackled How?               |
+|-----------------------|----------------------------|
+| Hosting permissions   | Communicating with University |
+| Github issue tracking | Separate progress tool created |
+
+## Progress - Problems
+
+<img src="IssueTracker.png"  height="500" width="835">
+
+## Data (Updates)
+
+-   All database related issues complete
+-   Scores are saved in backend
+-   Heatmap endpoint available for frontend
+
+## Visualization (Updates)
+
+-   Heatmap implementation (see demo)
+
+:::: {.columns}
+
+::: {.column width="50%"}
+<img src="logo.png"  height="400" width="268">
+:::
+
+::: {.column width="50%"}
+<img src="logo-alt.jpeg"  height="346" width="288">
+:::
+
+::::
+
+## Demonstration
+
+Brief Demo
+
+## Evaluation
+
+<iframe src="Evaluation.pdf" width="100%" height="550px"></iframe>
+
+## Evaluation
+
+<iframe src="Analysis.pdf" width="100%" height="550px"></iframe>
+
+## Plans for Next Sprint - Frontend
+
+| Planned Tasks | Status |
+| :--- | :--- |
+| Add workplace as POI | [Planned]{.border-plan} |
+| Add progress indicator to POI & isochrone request | [Planned]{.border-plan} |
+| Add exit button to select mode | [Planned]{.border-plan} |
+| Visualization of different amenities | [Planned]{.border-plan} |
+
+## Plans for Next Sprint - Backend
+
+| Planned Tasks | Status |
+| :--- | :--- |
+| Hosting outside of VPN | [In progress]{.border-wip} |
