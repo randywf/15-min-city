@@ -200,7 +200,7 @@
 		mode: "walk" | "bike" | "car",
 	) {
 		try {
-			const data = await getPointToPoi(longitude, latitude, mode, 15);
+			const data = await getPointToPoi(longitude, latitude, mode, 900);
 
 			console.log("Point-to-poi response: ", data);
 
