@@ -51,6 +51,16 @@
 		},
 	];
 
+  // Add selecting-mode classes and listener
+  $: if (map && L) {
+    const container = map.getContainer();
+    if (selectingLocation) {
+      container.classList.add('selecting-location');
+    } else {
+      container.classList.remove('selecting-location');
+    }
+  }
+
 	// Run once when the component is first added to the page
 	onMount(async () => {
 		L = await import("leaflet");
@@ -411,5 +421,14 @@
   #map {
     height: 100%;
     width: 100%;
+  }
+
+  /* Selecting location mode */
+  :global(.selecting-location) {
+    cursor: crosshair !important;
+  }
+
+  :global(.selecting-location.leaflet-container.leaflet-drag-target) {
+    cursor: grabbing !important;
   }
 </style>
