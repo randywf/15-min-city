@@ -224,6 +224,15 @@
 		}
 	}
 
+	// Convert amenity names to Sentence case
+	function toSentenceCase(text: string): string {
+		return text
+			.split('_')
+			.map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+			.join(' ');
+
+	}
+
 	async function drawPointToPoi(
 		latitude: number,
 		longitude: number,
@@ -283,10 +292,14 @@
                         // Add more 'else if' blocks for other types
 
 						// --- 2. CREATE MARKER WITH SELECTED ICON ---
+						const amenityLabel = toSentenceCase(poi.amenity);
 						const marker = L!
-							.marker([poi.lat, poi.lon], { icon: selectedIcon })
+							.marker([poi.lat, poi.lon], { 
+								icon: selectedIcon,
+								title: amenityLabel
+							})
 							.addTo(map!)
-							.bindPopup(`<b>${name}</b>`);
+							.bindPopup(`<b>Category: </b><b>${amenityLabel}</b>`);
 
 						poiMarkers.push(marker); // if you're storing them to remove later
 					}
