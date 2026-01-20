@@ -336,15 +336,23 @@
 		poiMarkers = [];
 
 		// Remove polygons
-		map!.removeLayer(area_oi!);
+		if (area_oi) {
+			map!.removeLayer(area_oi);
+			area_oi = null;
+		}
 	}
 
 	function clearSelection() {
-		if (area_oi) clearMapLayers();
+		// Clear map layers
+		clearMapLayers();
+
+		// Remove user marker
 		if (userMarker) {
 			map!.removeLayer(userMarker);
 			userMarker = null;
 		}
+
+		// Reset state
 		userLat = null;
 		userLng = null;
 		locationSelected = false;
@@ -570,8 +578,6 @@
   loading={heatmapPoisLoading}
   error={heatmapPoisError}
 />
-
-
 </div>
 
 <!--button to zoom to location-->
@@ -593,6 +599,19 @@
     📍
   </button>
 </div>
+
+<!--button to clear isochrone and POIs-->
+{#if locationSelected && (area_oi || poiMarkers.length > 0)}
+<div class="absolute bottom-52 right-3 z-[10000]">
+  <button
+    class="w-9 h-9 rounded-full bg-red-500 shadow-lg border border-red-600 flex items-center justify-center hover:bg-red-600 text-white font-bold text-lg"
+    on:click={clearSelection}
+    title="Clear isochrone and POIs"
+  >
+    ✕
+  </button>
+</div>
+{/if}
 
 <div bind:this={mapDiv} class="absolute inset-0 z-[1] top-14"></div>
 
