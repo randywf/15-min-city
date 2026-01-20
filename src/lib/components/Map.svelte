@@ -535,8 +535,8 @@
   </div>
 
   <!-- Transport Modes -->
-  <div class="mt-6">
-    <h3 class="text-sm font-semibold text-gray-600 mb-3">Transport Mode</h3>
+  <div class="mt-">
+    <h1 class="text-sm font-semibold text-gray-900 mb-4">Transport Mode</h1>
     <div class="grid grid-cols-4 gap-2">
       {#each transportModes as t}
         <button
@@ -558,18 +558,38 @@
     </div>
   </div>
 
-  <!-- Select location button -->
-  <button
-    class="w-full mt-2 mb-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium"
-    on:click={() => {
-      selectingLocation = true;
-      sidebarOpen = false;
-    }}
-  >
-    Select location on map
-  </button>
+  <!-- Select location and Clear buttons -->
+  <div class="grid grid-cols-4 gap-2 mt-4 mb-4">
+    <button
+      class="col-span-3 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium"
+      on:click={() => {
+        selectingLocation = true;
+        sidebarOpen = false;
+      }}
+    >
+      Select Location on Map
+    </button>
+    
+    <button
+      class="col-span-1 py-3 rounded-lg text-sm font-medium transition-all"
+      class:bg-red-500={locationSelected && (area_oi || poiMarkers.length > 0)}
+      class:text-white={locationSelected && (area_oi || poiMarkers.length > 0)}
+      class:hover:bg-red-600={locationSelected && (area_oi || poiMarkers.length > 0)}
+      class:bg-gray-200={!(locationSelected && (area_oi || poiMarkers.length > 0))}
+      class:text-gray-400={!(locationSelected && (area_oi || poiMarkers.length > 0))}
+      class:cursor-not-allowed={!(locationSelected && (area_oi || poiMarkers.length > 0))}
+      disabled={!(locationSelected && (area_oi || poiMarkers.length > 0))}
+      on:click={clearSelection}
+    >
+      Clear
+    </button>
+  </div>
 
-  <Score />
+  <!-- Accessibility Score Section -->
+  <div class="mt-6">
+    <h3 class="text-base font-semibold text-gray-600 mb-4">Accessibility Score</h3>
+    <Score {locationSelected} {userLat} {userLng} {mode} />
+  </div>
 
   <Heatmap
   {L}
@@ -599,19 +619,6 @@
     📍
   </button>
 </div>
-
-<!--button to clear isochrone and POIs-->
-{#if locationSelected && (area_oi || poiMarkers.length > 0)}
-<div class="absolute bottom-52 right-3 z-[10000]">
-  <button
-    class="w-9 h-9 rounded-full bg-red-500 shadow-lg border border-red-600 flex items-center justify-center hover:bg-red-600 text-white font-bold text-lg"
-    on:click={clearSelection}
-    title="Clear isochrone and POIs"
-  >
-    ✕
-  </button>
-</div>
-{/if}
 
 <div bind:this={mapDiv} class="absolute inset-0 z-[1] top-14"></div>
 
