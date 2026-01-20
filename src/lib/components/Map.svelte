@@ -35,6 +35,8 @@
 	let heatmapPoisError: string | null = null;
 
 	// Loading states
+	let amenityCount = 0;
+	let locationSelected = false;
 	let isInitialLoading = true;
 	let isIsochroneLoading = false;
 
@@ -259,8 +261,12 @@
 				area_oi = L!.geoJSON(data.polygon).addTo(map!);
 			}
 
+			// Count and display amenities
+			amenityCount = 0;
+
 			// --- Add amenities ---
 			if (data.amenities?.length) {
+				amenityCount = data.amenities.length;
 
 				// Define all amenity icons
 				const food = L!.icon({
@@ -316,6 +322,8 @@
 					}
 				});
 			}
+
+			locationSelected = true;
 		} catch (err) {
 			console.error(err);
 			alert("Could not load point-to-poi result");
@@ -329,6 +337,24 @@
 
 		// Remove polygons
 		map!.removeLayer(area_oi!);
+	}
+
+	function clearSelection() {
+		if (area_oi) clearMapLayers();
+		if (userMarker) {
+			map!.removeLayer(userMarker);
+			userMarker = null;
+		}
+		userLat = null;
+		userLng = null;
+		locationSelected = false;
+		amenityCount = 0;
+	}
+
+	function handleNewLocation() {
+		clearSelection();
+		locationSelected = true;
+		sidebarOpen = false;
 	}
 
 	async function handleModeSelect(selectedMode: string) {
@@ -367,6 +393,48 @@
             <p class="text-lg font-semibold text-gray-700">Loading map and data...</p>
         </div>
     </div>
+{/if}
+
+<!-- Location Status and Actions -->
+{#if locationSelected}
+<div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+	<div class="flex items-start justify-between mb-2">
+	<div class="flex-1">
+		<h4 class="text-sm font-semibold text-gray-800">Location Selected</h4>
+		<p class="text-xs text-gray-600 mt-1">
+		{amenityCount} amenities found in 15 min {mode}
+		</p>
+	</div>
+	<div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+	</div>
+	
+	<div class="flex gap-2 mt-3">
+	<button
+		class="flex-1 py-2 px-3 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-sm font-medium text-gray-700 flex items-center justify-center gap-2"
+		on:click={handleNewLocation}
+	>
+		<span class="text-base">📍</span>
+		New Location
+	</button>
+	<button
+		class="flex-1 py-2 px-3 rounded-lg bg-red-50 border border-red-300 hover:bg-red-100 text-sm font-medium text-red-700 flex items-center justify-center gap-2"
+		on:click={clearSelection}
+	>
+		<span class="text-base">✕</span>
+		Clear
+	</button>
+	</div>
+</div>
+{:else}
+<button
+	class="w-full mt-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium"
+	on:click={() => {
+	selectingLocation = true;
+	sidebarOpen = false;
+	}}
+>
+	Select location on map
+</button>
 {/if}
 
 <!-- TRANSPORT MODE LOADING SCREEN (when selecting transport mode) -->
@@ -492,13 +560,6 @@
   >
     Select location on map
   </button>
-
-  <!-- Transport Modes -->
-  <div class="grid grid-cols-4 gap-3 mt-4">
-    {#each transportModes as t}
-      <!-- ... your existing buttons ... -->
-    {/each}
-  </div>
 
   <Score />
 
