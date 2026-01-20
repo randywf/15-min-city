@@ -17,7 +17,7 @@
 
 	let mapDiv!: HTMLDivElement;
 	let sidebarOpen = true;
-	let mode = "walking";
+	let mode = "walk";
 	let storeMap: any;
 	let userLat: number | null = null;
 	let userLng: number | null = null;
@@ -459,25 +459,27 @@
   </div>
 
   <!-- Transport Modes -->
-  <div class="grid grid-cols-4 gap-3 mt-4">
-    {#each transportModes as t}
-      <button
-        class="
-            flex items-center justify-center p-3 rounded-lg border transition
-            bg-gray-100
-            [&>span>svg]:stroke-current
-          "
-        class:bg-gray-300={mode === t.value}
-        class:text-white={mode === t.value}
-        class:border-gray-300={mode === t.value}
-        class:bg-gray-100={mode !== t.value}
-        class:text-gray-300={mode !== t.value}
-        on:click={() => handleModeSelect(t.value)}
-      >
-        <span class="w-6 h-6 [&>svg]:w-full [&>svg]:h-full">{@html t.icon}</span
+  <div class="mt-6">
+    <h3 class="text-sm font-semibold text-gray-600 mb-3">Transport Mode</h3>
+    <div class="grid grid-cols-4 gap-2">
+      {#each transportModes as t}
+        <button
+          class="flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all
+                 hover:border-blue-400"
+          class:bg-blue-500={mode === t.value}
+          class:text-white={mode === t.value}
+          class:border-blue-500={mode === t.value}
+          class:bg-gray-50={mode !== t.value}
+          class:text-gray-600={mode !== t.value}
+          class:border-gray-200={mode !== t.value}
+          on:click={() => handleModeSelect(t.value)}
         >
-      </button>
-    {/each}
+          <span class="w-6 h-6 mb-1 [&>svg]:w-full [&>svg]:h-full"
+            >{@html t.icon}</span>
+          <span class="text-xs font-medium capitalize">{t.value}</span>
+        </button>
+      {/each}
+    </div>
   </div>
 
   <!-- Select location button -->
@@ -548,5 +550,11 @@
   #map {
     height: 100%;
     width: 100%;
+  }
+
+  .icon-white :global(svg) {
+  stroke: white !important;
+  fill: white !important;
+  color: white !important;
   }
 </style>
