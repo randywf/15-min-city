@@ -34,6 +34,9 @@
 	let heatmapPoisLoading = false;
 	let heatmapPoisError: string | null = null;
 
+	// Loading states
+	let isInitialLoading = true;
+	let isIsochroneLoading = false;
 
 	// Leaflet map and library reference (declared here to be accessible in functions)
 	let L: typeof import("leaflet") | null = null;
@@ -65,6 +68,8 @@
 
 	// Run once when the component is first added to the page
 	onMount(async () => {
+		isInitialLoading = true;
+
 		const leaflet = await import("$lib/leaflet-client");
 		L = leaflet.default as any;
 		console.log("[leaflet] typeof heatLayer =", typeof (L as any).heatLayer);
@@ -115,6 +120,9 @@
 		heatmapPoisLoading = false;
 		}
 
+		// End Initial loading after heatmap is done
+		isInitialLoading = false;
+
 
 		// New Layer Control
 		const baseLayers = {
@@ -156,7 +164,9 @@
 
 				// remove previous markers and area
 				if (area_oi) clearMapLayers();
-				drawPointToPoi(lat, lng, "walk"); // add the pois in the area
+				isIsochroneLoading = true;
+				await drawPointToPoi(lat, lng, mode as any); // add the pois in the area
+				isIsochroneLoading = false;
 
 				selectingLocation = false;
 				return;
@@ -320,13 +330,17 @@
 		map!.removeLayer(area_oi!);
 	}
 
-	function handleModeSelect(selectedMode: string) {
+	async function handleModeSelect(selectedMode: string) {
 		mode = selectedMode;
 
 		// Only redraw if user already picked a location
 		if (userLat && userLng) {
 			if (area_oi) clearMapLayers(); // clear previous layers
-			drawPointToPoi(userLat, userLng, selectedMode as any);
+
+            // Show loading screen when changing transport mode
+            isIsochroneLoading = true;
+            await drawPointToPoi(userLat, userLng, selectedMode as any);
+            isIsochroneLoading = false;
 		}
 	}
 
@@ -334,6 +348,36 @@
 
 
 </script>
+
+<!-- INITIAL LOADING SCREEN (component load + heatmap) -->
+{#if isInitialLoading}
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+        <div class="bg-white rounded-lg p-8 shadow-2xl flex flex-col items-center gap-4">
+            <div class="animate-spin">
+                <svg class="w-12 h-12 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+            <p class="text-lg font-semibold text-gray-700">Loading map and data...</p>
+        </div>
+    </div>
+{/if}
+
+<!-- TRANSPORT MODE LOADING SCREEN (when selecting transport mode) -->
+{#if isIsochroneLoading}
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+        <div class="bg-white rounded-lg p-8 shadow-2xl flex flex-col items-center gap-4">
+            <div class="animate-spin">
+                <svg class="w-12 h-12 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+            <p class="text-lg font-semibold text-gray-700">Processing route...</p>
+        </div>
+    </div>
+{/if}
 
 <!--TOP NAVIGATION BAR-->
 <div
