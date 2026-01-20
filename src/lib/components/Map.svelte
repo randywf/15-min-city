@@ -16,7 +16,7 @@
 
 
 	let mapDiv!: HTMLDivElement;
-	let sidebarOpen = false;
+	let sidebarOpen = true;
 	let mode = "walking";
 	let storeMap: any;
 	let userLat: number | null = null;
@@ -167,6 +167,7 @@
 				isIsochroneLoading = true;
 				await drawPointToPoi(lat, lng, mode as any); // add the pois in the area
 				isIsochroneLoading = false;
+				sidebarOpen = true;
 
 				selectingLocation = false;
 				return;
@@ -337,10 +338,14 @@
 		if (userLat && userLng) {
 			if (area_oi) clearMapLayers(); // clear previous layers
 
-            // Show loading screen when changing transport mode
+            // Hide sidebar during isochrone loading
+			sidebarOpen = false;
             isIsochroneLoading = true;
             await drawPointToPoi(userLat, userLng, selectedMode as any);
             isIsochroneLoading = false;
+
+			// Reopen sidebar after loading the isochrone
+			sidebarOpen = true;
 		}
 	}
 
