@@ -16,39 +16,58 @@
 	import Heatmap from "$lib/components/Heatmap.svelte";
 	import Loading from "$lib/components/Loading.svelte";
 	import Modal from "$lib/components/Modal.svelte";
+	import Score from "$lib/components/Score.svelte";
 
+	// Types
+	type TransportMode = "walk" | "bike" | "car";
 
+	// Constants
+	const MARKER_STYLES = {
+		radius: 8,
+		color: "red",
+		weight: 2,
+		fillColor: "red",
+		fillOpacity: 0.9,
+	};
+
+	const ICON_CONFIG = {
+		iconSize: [38, 57] as [number, number],
+		iconAnchor: [22, 94] as [number, number],
+		popupAnchor: [-3, -76] as [number, number],
+	};
+
+	// Map References
 	let mapDiv!: HTMLDivElement;
+	let L: typeof import("leaflet") | null = null;
+	let map: import("leaflet").Map | null = null;
+
+	// UI State
 	let sidebarOpen = true;
-	let mode = "walk";
-	let storeMap: any;
+	let selectingLocation = false;
+	let isInitialLoading = true;
+	let isIsochroneLoading = false;
+	let notificationComponent: ErrorNotification;
+
+	// User Location State
 	let userLat: number | null = null;
 	let userLng: number | null = null;
-	let notificationComponent: ErrorNotification;
 	let userAccuracy: number | null = null;
-	let selectingLocation = false; // select location mode
-  let poiAbortController: AbortController | null = null;
-	let selectedMarker: any = null; // store last selected location
-	let area_oi: import("leaflet").GeoJSON<any> | null = null; // store area of interest layer
-	let poiMarkers: any[] = [];
+	let userMarker: import("leaflet").Layer | null = null;
 
-	// Heatmap Variables
-	
+	// Map Layers State
+	let area_oi: import("leaflet").GeoJSON<any> | null = null;
+	let poiMarkers: import("leaflet").Marker[] = [];
+	let poiAbortController: AbortController | null = null;
 
+	// Data State
+	let mode: TransportMode = "walk";
+	let amenityCount = 0;
+	let locationSelected = false;
+
+	// Heatmap State
 	let heatmapPois: HeatmapPoi[] = [];
 	let heatmapPoisLoading = false;
 	let heatmapPoisError: string | null = null;
-
-	// Loading states
-	let amenityCount = 0;
-	let locationSelected = false;
-	let isInitialLoading = true;
-	let isIsochroneLoading = false;
-
-	// Leaflet map and library reference (declared here to be accessible in functions)
-	let L: typeof import("leaflet") | null = null;
-	let map: import("leaflet").Map | null = null;
-	let userMarker: import("leaflet").Layer | null = null;
 
 	const transportModes = [
 		{
@@ -73,6 +92,38 @@
 		},
 	];
 
+	/**
+	 * Convert amenity names from snake_case to Sentence Case
+	 * @param text - The text to convert (e.g., "fast_food")
+	 * @returns Sentence cased text (e.g., "Fast Food")
+	 */
+	function toSentenceCase(text: string): string {
+		return text
+			.split('_')
+			.map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+			.join(' ');
+	}
+
+	/**
+	 * Select appropriate icon for a POI based on its amenity tags
+	 * @param poi - The POI object with tags
+	 * @param icons - Available icon set
+	 * @returns The appropriate icon for the POI
+	 */
+	function getIconForAmenity(poi: any, icons: { food: any; education: any }): any {
+		// Check if educational institute
+		if (poi.tags?.amenity === 'school' ||
+			poi.tags?.amenity === 'university' ||
+			poi.tags?.amenity === 'college' ||
+			poi.tags?.amenity === 'kindergarten'
+		) {
+			return icons.education;
+		}
+		
+		// Default to food icon
+		return icons.food;
+	}
+
   // Add selecting-mode classes and listener
   $: if (map && L) {
     const container = map.getContainer();
@@ -83,21 +134,26 @@
     }
   }
 
-	// Run once when the component is first added to the page
-	onMount(async () => {
-		isInitialLoading = true;
-
+	/**
+	 * Initialize the Leaflet library by dynamically importing it
+	 */
+	async function initializeLeaflet() {
 		const leaflet = await import("$lib/leaflet-client");
 		L = leaflet.default as any;
 		console.log("[leaflet] typeof heatLayer =", typeof (L as any).heatLayer);
+	}
 
-
-		const osm = L.tileLayer(
+	/**
+	 * Create tile layers (OSM, Satellite, Topographic) for the map
+	 * @returns Object containing all tile layers
+	 */
+	function createTileLayers() {
+		const osm = L!.tileLayer(
 			"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
 			{ maxZoom: 19, attribution: "© OpenStreetMap contributors" },
 		);
-		// Satellite Layer
-		const satellite = L.tileLayer(
+
+		const satellite = L!.tileLayer(
 			"https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
 			{
 				maxZoom: 20,
@@ -105,8 +161,8 @@
 				attribution: "© Google Satellite",
 			},
 		);
-		// Topographic Layer
-		const topo = L.tileLayer(
+
+		const topo = L!.tileLayer(
 			"https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
 			{
 				maxZoom: 17,
@@ -114,44 +170,55 @@
 			},
 		);
 
-		// Create map using OSM as default
-		map = L.map(mapDiv, {
+		return { osm, satellite, topo };
+	}
+
+	/**
+	 * Setup the map instance with layers and controls
+	 * @param layers - Tile layers to add to the map
+	 */
+	function setupMapInstance(layers: any) {
+		map = L!.map(mapDiv, {
 			center: [51.96, 7.62],
 			zoom: 12,
-			layers: [osm],
+			layers: [layers.osm],
 		});
 
-		storeMap = map;
+		// Add layer control
+		const baseLayers = {
+			OpenStreetMap: layers.osm,
+			Satellite: layers.satellite,
+			Topographic: layers.topo,
+		};
+		L!.control.layers(baseLayers).addTo(map);
 
-		// --- Heatmap init fetch (RUNS ONCE) ---
+		// Add zoom control to bottom right
+		map.zoomControl.setPosition("bottomright");
+	}
+
+	/**
+	 * Load heatmap data from the API
+	 */
+	async function loadHeatmapData() {
 		heatmapPoisLoading = true;
 		heatmapPoisError = null;
 
 		try {
-		heatmapPois = await getHeatmapPois();
-		console.log("[heatmap_pois] loaded:", heatmapPois.length, heatmapPois);
+			heatmapPois = await getHeatmapPois();
+			console.log("[heatmap_pois] loaded:", heatmapPois.length, heatmapPois);
 		} catch (e) {
-		console.error("[heatmap_pois] failed:", e);
-		heatmapPoisError = e instanceof Error ? e.message : String(e);
+			console.error("[heatmap_pois] failed:", e);
+			heatmapPoisError = e instanceof Error ? e.message : String(e);
 		} finally {
-		heatmapPoisLoading = false;
+			heatmapPoisLoading = false;
 		}
+	}
 
-		// End Initial loading after heatmap is done
-		isInitialLoading = false;
-
-
-		// New Layer Control
-		const baseLayers = {
-			OpenStreetMap: osm,
-			Satellite: satellite,
-			Topographic: topo,
-		};
-		// Add layer control to map
-		L.control.layers(baseLayers).addTo(map);
-
-		// Handle map clicks
-		map!.on("click", async (e: L.LeafletMouseEvent) => {
+	/**
+	 * Register event handlers for map interactions (clicks, location selection)
+	 */
+	function registerMapEventHandlers() {
+		map!.on("click", async (e: any) => {
 			// Always close sidebar on click
 			if (sidebarOpen) sidebarOpen = false;
 
@@ -169,20 +236,12 @@
 				if (userMarker) {
 					map!.removeLayer(userMarker);
 				}
-				userMarker = L!
-					.circleMarker([lat, lng], {
-						radius: 8,
-						color: "red",
-						weight: 2,
-						fillColor: "red",
-						fillOpacity: 0.9,
-					})
-					.addTo(map!); // add new user marker
+				userMarker = createUserMarker(lat, lng);
 
 				// remove previous markers and area
 				if (area_oi) clearMapLayers();
 				isIsochroneLoading = true;
-				await drawPointToPoi(lat, lng, mode as any); // add the pois in the area
+				await drawPointToPoi(lat, lng, mode);
 				isIsochroneLoading = false;
 				sidebarOpen = true;
 
@@ -190,18 +249,25 @@
 				return;
 			}
 		});
+	}
 
-		// Add zoom control to bottom right
-		map.zoomControl.setPosition("bottomright");
+	// Run once when the component is first added to the page
+	onMount(async () => {
+		isInitialLoading = true;
 
-		// Close sidebar on map click
-		map.on("click", () => {
-			if (sidebarOpen) sidebarOpen = false;
-		});
+		await initializeLeaflet();
+		const layers = createTileLayers();
+		setupMapInstance(layers);
+		await loadHeatmapData();
+		registerMapEventHandlers();
+
+		isInitialLoading = false;
 	});
 
-	// called when the button is clicked
-	function requestBrowserLocation() {
+	/**
+	 * Request user's browser location via Geolocation API
+	 */
+	async function requestBrowserLocation() {
 		if (!L || !map) return;
 
 		if (!("geolocation" in navigator)) {
@@ -210,7 +276,7 @@
 		}
 
 		navigator.geolocation.getCurrentPosition(
-			(pos) => {
+			async (pos) => {
 				const { latitude, longitude } = pos.coords;
 
 				userLat = latitude;
@@ -218,8 +284,16 @@
 
 				map!.setView([latitude, longitude], 15);
 
+				// Clear previous selection
+				clearPreviousSelection();
 				
-				drawPointToPoi(latitude, longitude, "walk"); // add the pois in the area
+				// Show loading state
+				isIsochroneLoading = true;
+				await drawPointToPoi(latitude, longitude, "walk");
+				isIsochroneLoading = false;
+
+				// Open sidebar after load
+				sidebarOpen = true;
 			},
 			(err) => {
 				console.error(err);
@@ -230,143 +304,152 @@
 	}
 
 
-	// Go to user location
+	/**
+	 * Pan the map to the user's saved location
+	 */
 	function goToMyLocation() {
-		if (userLat && userLng) {
-			storeMap.setView([userLat, userLng], 16, { animate: true });
+		if (userLat && userLng && map) {
+			map.setView([userLat, userLng], 16, { animate: true });
 		} else {
 			alert("Location not available yet");
 		}
 	}
 
-	// Convert amenity names to Sentence case
-	function toSentenceCase(text: string): string {
-		return text
-			.split('_')
-			.map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-			.join(' ');
-
+	/**
+	 * Create a circular marker at the specified location to represent the user
+	 * @param lat - Latitude coordinate
+	 * @param lng - Longitude coordinate
+	 * @returns The created Leaflet layer
+	 */
+	function createUserMarker(lat: number, lng: number): import("leaflet").Layer {
+		return L!
+			.circleMarker([lat, lng], MARKER_STYLES)
+			.addTo(map!);
 	}
 
-	async function drawPointToPoi(
-		latitude: number,
-		longitude: number,
-		mode: "walk" | "bike" | "car",
-	) {
-		try {
-      selectingLocation = false;
+	/**
+	 * Clear previous selection by removing user marker and map layers
+	 */
+	function clearPreviousSelection(): void {
+		if (userMarker) map!.removeLayer(userMarker);
+		if (area_oi) clearMapLayers();
+	}
 
-      // remove previous marker and area
-      if (userMarker) map!.removeLayer(userMarker);
-
-      // remove previous markers and area
-      if (area_oi) clearMapLayers();
-
-      userMarker = L!
-        .circleMarker([latitude, longitude], {
-          radius: 8,
-          color: "red",
-          weight: 2,
-          fillColor: "red",
-          fillOpacity: 0.9,
-        })
-        .addTo(map!); // add new user marker
-
-
-      if (poiAbortController) poiAbortController.abort();
-      poiAbortController = new AbortController();
-			const data = await getPointToPoi(longitude, latitude, mode, 900, poiAbortController.signal);
-      poiAbortController = null;
-
-			console.log("Point-to-poi response: ", data);
-
-			// --- Draw polygon ---
-			if (data.polygon) {
-				area_oi = L!.geoJSON(data.polygon).addTo(map!);
-			}
-
-			// Count and display amenities
-			amenityCount = 0;
-
-			// --- Add amenities ---
-			if (data.amenities?.length) {
-				amenityCount = data.amenities.length;
-
-				// Define all amenity icons
-				const food = L!.icon({
-					iconUrl: foodURL,
-					iconSize: [38, 57], // w:h = 1:1.5
-					iconAnchor: [22, 94],
-					popupAnchor: [-3, -76]
-				});
-
-				const education = L!.icon({
-					iconUrl: educationURL,
-					iconSize: [38, 57], // w:h = 1:1.5
-					iconAnchor: [22, 94],
-					popupAnchor: [-3, -76]
-				});
-
-				data.amenities.forEach((poi: any) => {
-					if (poi.lat && poi.lon) {
-						const name = poi.tags?.name || "Unnamed location";
-
-						// --- 1. LOGIC TO PICK THE ICON ---
-						// Start with a default
-						let selectedIcon = food;
-
-						// Check if educational institute
-						if (poi.tags?.amenity === 'school' ||
-							poi.tags?.amenity === 'university' ||
-							poi.tags?.amenity === 'college' ||
-							poi.tags?.amenity === 'kindergarten'
-						) {
-							selectedIcon = education;
-						}
-
-						// else if (poi.tags?.leisure === 'park' ||
-						// 		poi.tags?.amenity === 'park'
-						// 	) {
-    				// 			selectedIcon = park;
-						// }
-
-                        // Add more 'else if' blocks for other types
-
-						// --- 2. CREATE MARKER WITH SELECTED ICON ---
-						const amenityLabel = toSentenceCase(poi.amenity);
-						const marker = L!
-							.marker([poi.lat, poi.lon], { 
-								icon: selectedIcon,
-								title: amenityLabel
-							})
-							.addTo(map!)
-							.bindPopup(`<b>Category: </b><b>${amenityLabel}</b>`);
-
-						poiMarkers.push(marker); // if you're storing them to remove later
-					}
-				});
-			}
-
-			locationSelected = true;
-		} catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
-        console.log("Request aborted");
-        return;
-      }
-			console.error(err);
-			notificationComponent.addNotification("The backend server is not responding.")
+	/**
+	 * Render the isochrone polygon on the map
+	 * @param polygonData - GeoJSON polygon data
+	 */
+	function renderPolygon(polygonData: any): void {
+		if (polygonData) {
+			area_oi = L!.geoJSON(polygonData).addTo(map!);
 		}
 	}
 
-  function abortPointToPoi() {
-    // remove previous marker and area
-    if (userMarker) map!.removeLayer(userMarker);
+	/**
+	 * Create icon set for POI markers
+	 * @returns Object containing all POI icons
+	 */
+	function createPoiIcons() {
+		return {
+			food: L!.icon({
+				iconUrl: foodURL,
+				...ICON_CONFIG
+			}),
+			education: L!.icon({
+				iconUrl: educationURL,
+				...ICON_CONFIG
+			})
+		};
+	}
 
-    // cancel request
-    if (poiAbortController) poiAbortController.abort();
-    poiAbortController = null;
-  }
+	/**
+	 * Render POI markers on the map for all amenities
+	 * @param amenities - Array of amenity objects to render
+	 */
+	function renderPoiMarkers(amenities: any[]): void {
+		if (!amenities?.length) return;
 
+		const icons = createPoiIcons();
+		
+		amenities.forEach((poi: any) => {
+			if (poi.lat && poi.lon) {
+				const selectedIcon = getIconForAmenity(poi, icons);
+				const amenityLabel = toSentenceCase(poi.amenity);
+				const marker = L!
+					.marker([poi.lat, poi.lon], { 
+						icon: selectedIcon,
+						title: amenityLabel
+					})
+					.addTo(map!)
+					.bindPopup(`<b>Category: </b><b>${amenityLabel}</b>`);
+
+				poiMarkers.push(marker);
+			}
+		});
+	}
+
+	/**
+	 * Handle errors from POI fetch operations
+	 * @param err - The error object
+	 */
+	function handlePoiError(err: any): void {
+		if (err instanceof DOMException && err.name === 'AbortError') {
+			console.log("Request aborted");
+			return;
+		}
+		console.error(err);
+		notificationComponent.addNotification("The backend server is not responding.");
+	}
+
+	/**
+	 * Main function to fetch and render POI data for a location
+	 * @param latitude - Latitude coordinate
+	 * @param longitude - Longitude coordinate
+	 * @param mode - Transport mode for isochrone calculation
+	 */
+	async function drawPointToPoi(
+		latitude: number,
+		longitude: number,
+		mode: TransportMode,
+	) {
+		try {
+			selectingLocation = false;
+			clearPreviousSelection();
+			userMarker = createUserMarker(latitude, longitude);
+
+			if (poiAbortController) poiAbortController.abort();
+			poiAbortController = new AbortController();
+			
+			const data = await getPointToPoi(longitude, latitude, mode, 900, poiAbortController.signal);
+			poiAbortController = null;
+
+			console.log("Point-to-poi response: ", data);
+
+			renderPolygon(data.polygon);
+			renderPoiMarkers(data.amenities);
+
+			amenityCount = data.amenities?.length || 0;
+			locationSelected = true;
+		} catch (err) {
+			handlePoiError(err);
+		}
+	}
+
+	/**
+	 * Abort ongoing POI fetch and clean up
+	 */
+	function abortPointToPoi() {
+		// remove previous marker and area
+		if (userMarker) map!.removeLayer(userMarker);
+
+		// cancel request
+		if (poiAbortController) poiAbortController.abort();
+		poiAbortController = null;
+	}
+
+	/**
+	 * Remove all POI markers and polygon layers from the map
+	 */
 	function clearMapLayers() {
 		// Remove markers
 		poiMarkers.forEach((marker) => map!.removeLayer(marker));
@@ -379,6 +462,9 @@
 		}
 	}
 
+	/**
+	 * Clear the current selection and reset all location-related state
+	 */
 	function clearSelection() {
 		// Clear map layers
 		clearMapLayers();
@@ -396,33 +482,36 @@
 		amenityCount = 0;
 	}
 
+	/**
+	 * Handle the "New Location" button click - clears current selection and enters selection mode
+	 */
 	function handleNewLocation() {
 		clearSelection();
-		locationSelected = true;
+		selectingLocation = true;
 		sidebarOpen = false;
 	}
 
+	/**
+	 * Handle transport mode selection and re-fetch POI data if location exists
+	 * @param selectedMode - The newly selected transport mode
+	 */
 	async function handleModeSelect(selectedMode: string) {
-		mode = selectedMode;
+		mode = selectedMode as TransportMode;
 
 		// Only redraw if user already picked a location
 		if (userLat && userLng) {
-			if (area_oi) clearMapLayers(); // clear previous layers
-
-            // Hide sidebar during isochrone loading
+			// Hide sidebar during loading
 			sidebarOpen = false;
-            isIsochroneLoading = true;
-            await drawPointToPoi(userLat, userLng, selectedMode as any);
-            isIsochroneLoading = false;
+			
+			// Show loading state
+			isIsochroneLoading = true;
+			await drawPointToPoi(userLat, userLng, mode);
+			isIsochroneLoading = false;
 
-			// Reopen sidebar after loading the isochrone
+			// Reopen sidebar after loading
 			sidebarOpen = true;
 		}
 	}
-
-  import Score from "$lib/components/Score.svelte";
-
-
 </script>
 
 <!-- INITIAL LOADING SCREEN (component load + heatmap) -->
@@ -624,28 +713,6 @@
 </Modal>
 
 <style>
-  .controls {
-    position: absolute;
-    z-index: 1000;
-    background: white;
-    padding: 8px;
-    border-radius: 6px;
-    top: 10px;
-    left: 10px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  }
-
-  #map {
-    height: 100%;
-    width: 100%;
-  }
-
-  .icon-white :global(svg) {
-  stroke: white !important;
-  fill: white !important;
-  color: white !important;
-  }
-
   /* Selecting location mode */
   :global(.selecting-location) {
     cursor: crosshair !important;
@@ -653,26 +720,6 @@
 
   :global(.selecting-location.leaflet-container.leaflet-drag-target) {
     cursor: grabbing !important;
-  }
-
-  /* Pulsing circle animation */
-  .pulse-circle {
-    width: 40px;
-    height: 40px;
-    background-color: #3b82f6;
-    border-radius: 50%;
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    50% {
-      transform: scale(1.3);
-      opacity: 0.5;
-    }
   }
 </style>
 
