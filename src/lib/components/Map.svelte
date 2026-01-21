@@ -9,20 +9,25 @@
 	import search from "$lib/assets/search.svg?raw";
 	import educationURL from '$lib/assets/education_rainbow.png'
 	import foodURL from '$lib/assets/food_Lime.png'
+	import ErrorNotification from "$lib/components/ErrorNotification.svelte";
 	import { getPointToPoi } from "$lib/services/isochrone-service";
 	import { getHeatmapPois, type HeatmapPoi } from "$lib/services/heatmap-service";
 	import { AMENITIES, AMENITY_GRADIENTS, type Amenity } from "$lib/constants/amenities";
 	import Heatmap from "$lib/components/Heatmap.svelte";
+	import Loading from "$lib/components/Loading.svelte";
+	import Modal from "$lib/components/Modal.svelte";
 
 
 	let mapDiv!: HTMLDivElement;
-	let sidebarOpen = false;
-	let mode = "walking";
+	let sidebarOpen = true;
+	let mode = "walk";
 	let storeMap: any;
 	let userLat: number | null = null;
 	let userLng: number | null = null;
+	let notificationComponent: ErrorNotification;
 	let userAccuracy: number | null = null;
 	let selectingLocation = false; // select location mode
+  let poiAbortController: AbortController | null = null;
 	let selectedMarker: any = null; // store last selected location
 	let area_oi: import("leaflet").GeoJSON<any> | null = null; // store area of interest layer
 	let poiMarkers: any[] = [];
@@ -34,6 +39,11 @@
 	let heatmapPoisLoading = false;
 	let heatmapPoisError: string | null = null;
 
+	// Loading states
+	let amenityCount = 0;
+	let locationSelected = false;
+	let isInitialLoading = true;
+	let isIsochroneLoading = false;
 
 	// Leaflet map and library reference (declared here to be accessible in functions)
 	let L: typeof import("leaflet") | null = null;
@@ -63,8 +73,20 @@
 		},
 	];
 
+  // Add selecting-mode classes and listener
+  $: if (map && L) {
+    const container = map.getContainer();
+    if (selectingLocation) {
+      container.classList.add('selecting-location');
+    } else {
+      container.classList.remove('selecting-location');
+    }
+  }
+
 	// Run once when the component is first added to the page
 	onMount(async () => {
+		isInitialLoading = true;
+
 		const leaflet = await import("$lib/leaflet-client");
 		L = leaflet.default as any;
 		console.log("[leaflet] typeof heatLayer =", typeof (L as any).heatLayer);
@@ -115,6 +137,9 @@
 		heatmapPoisLoading = false;
 		}
 
+		// End Initial loading after heatmap is done
+		isInitialLoading = false;
+
 
 		// New Layer Control
 		const baseLayers = {
@@ -156,7 +181,10 @@
 
 				// remove previous markers and area
 				if (area_oi) clearMapLayers();
-				drawPointToPoi(lat, lng, "walk"); // add the pois in the area
+				isIsochroneLoading = true;
+				await drawPointToPoi(lat, lng, mode as any); // add the pois in the area
+				isIsochroneLoading = false;
+				sidebarOpen = true;
 
 				selectingLocation = false;
 				return;
@@ -190,20 +218,7 @@
 
 				map!.setView([latitude, longitude], 15);
 
-				// remove previous marker and area
-				if (userMarker) map!.removeLayer(userMarker);
-				userMarker = L!
-					.circleMarker([latitude, longitude], {
-						radius: 8,
-						color: "red",
-						weight: 2,
-						fillColor: "red",
-						fillOpacity: 0.9,
-					})
-					.addTo(map!); // add new user marker
-
-				// remove previous markers and area
-				if (area_oi) clearMapLayers();
+				
 				drawPointToPoi(latitude, longitude, "walk"); // add the pois in the area
 			},
 			(err) => {
@@ -224,13 +239,44 @@
 		}
 	}
 
+	// Convert amenity names to Sentence case
+	function toSentenceCase(text: string): string {
+		return text
+			.split('_')
+			.map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+			.join(' ');
+
+	}
+
 	async function drawPointToPoi(
 		latitude: number,
 		longitude: number,
 		mode: "walk" | "bike" | "car",
 	) {
 		try {
-			const data = await getPointToPoi(longitude, latitude, mode, 900);
+      selectingLocation = false;
+
+      // remove previous marker and area
+      if (userMarker) map!.removeLayer(userMarker);
+
+      // remove previous markers and area
+      if (area_oi) clearMapLayers();
+
+      userMarker = L!
+        .circleMarker([latitude, longitude], {
+          radius: 8,
+          color: "red",
+          weight: 2,
+          fillColor: "red",
+          fillOpacity: 0.9,
+        })
+        .addTo(map!); // add new user marker
+
+
+      if (poiAbortController) poiAbortController.abort();
+      poiAbortController = new AbortController();
+			const data = await getPointToPoi(longitude, latitude, mode, 900, poiAbortController.signal);
+      poiAbortController = null;
 
 			console.log("Point-to-poi response: ", data);
 
@@ -239,8 +285,12 @@
 				area_oi = L!.geoJSON(data.polygon).addTo(map!);
 			}
 
+			// Count and display amenities
+			amenityCount = 0;
+
 			// --- Add amenities ---
 			if (data.amenities?.length) {
+				amenityCount = data.amenities.length;
 
 				// Define all amenity icons
 				const food = L!.icon({
@@ -283,20 +333,39 @@
                         // Add more 'else if' blocks for other types
 
 						// --- 2. CREATE MARKER WITH SELECTED ICON ---
+						const amenityLabel = toSentenceCase(poi.amenity);
 						const marker = L!
-							.marker([poi.lat, poi.lon], { icon: selectedIcon })
+							.marker([poi.lat, poi.lon], { 
+								icon: selectedIcon,
+								title: amenityLabel
+							})
 							.addTo(map!)
-							.bindPopup(`<b>${name}</b>`);
+							.bindPopup(`<b>Category: </b><b>${amenityLabel}</b>`);
 
 						poiMarkers.push(marker); // if you're storing them to remove later
 					}
 				});
 			}
+
+			locationSelected = true;
 		} catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        console.log("Request aborted");
+        return;
+      }
 			console.error(err);
-			alert("Could not load point-to-poi result");
+			notificationComponent.addNotification("The backend server is not responding.")
 		}
 	}
+
+  function abortPointToPoi() {
+    // remove previous marker and area
+    if (userMarker) map!.removeLayer(userMarker);
+
+    // cancel request
+    if (poiAbortController) poiAbortController.abort();
+    poiAbortController = null;
+  }
 
 	function clearMapLayers() {
 		// Remove markers
@@ -304,16 +373,50 @@
 		poiMarkers = [];
 
 		// Remove polygons
-		map!.removeLayer(area_oi!);
+		if (area_oi) {
+			map!.removeLayer(area_oi);
+			area_oi = null;
+		}
 	}
 
-	function handleModeSelect(selectedMode: string) {
+	function clearSelection() {
+		// Clear map layers
+		clearMapLayers();
+
+		// Remove user marker
+		if (userMarker) {
+			map!.removeLayer(userMarker);
+			userMarker = null;
+		}
+
+		// Reset state
+		userLat = null;
+		userLng = null;
+		locationSelected = false;
+		amenityCount = 0;
+	}
+
+	function handleNewLocation() {
+		clearSelection();
+		locationSelected = true;
+		sidebarOpen = false;
+	}
+
+	async function handleModeSelect(selectedMode: string) {
 		mode = selectedMode;
 
 		// Only redraw if user already picked a location
 		if (userLat && userLng) {
 			if (area_oi) clearMapLayers(); // clear previous layers
-			drawPointToPoi(userLat, userLng, selectedMode as any);
+
+            // Hide sidebar during isochrone loading
+			sidebarOpen = false;
+            isIsochroneLoading = true;
+            await drawPointToPoi(userLat, userLng, selectedMode as any);
+            isIsochroneLoading = false;
+
+			// Reopen sidebar after loading the isochrone
+			sidebarOpen = true;
 		}
 	}
 
@@ -321,6 +424,69 @@
 
 
 </script>
+
+<!-- INITIAL LOADING SCREEN (component load + heatmap) -->
+{#if isInitialLoading}
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+        <div class="bg-white rounded-lg p-8 shadow-2xl flex flex-col items-center gap-4">
+            <div class="animate-spin">
+                <svg class="w-12 h-12 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+            <p class="text-lg font-semibold text-gray-700">Loading map and data...</p>
+        </div>
+    </div>
+{/if}
+
+<!-- Location Status and Actions -->
+{#if locationSelected}
+<div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+	<div class="flex items-start justify-between mb-2">
+	<div class="flex-1">
+		<h4 class="text-sm font-semibold text-gray-800">Location Selected</h4>
+		<p class="text-xs text-gray-600 mt-1">
+		{amenityCount} amenities found in 15 min {mode}
+		</p>
+	</div>
+	<div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+	</div>
+	
+	<div class="flex gap-2 mt-3">
+	<button
+		class="flex-1 py-2 px-3 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-sm font-medium text-gray-700 flex items-center justify-center gap-2"
+		on:click={handleNewLocation}
+	>
+		<span class="text-base">📍</span>
+		New Location
+	</button>
+	<button
+		class="flex-1 py-2 px-3 rounded-lg bg-red-50 border border-red-300 hover:bg-red-100 text-sm font-medium text-red-700 flex items-center justify-center gap-2"
+		on:click={clearSelection}
+	>
+		<span class="text-base">✕</span>
+		Clear
+	</button>
+	</div>
+</div>
+{:else}
+<button
+	class="w-full mt-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium"
+	on:click={() => {
+	selectingLocation = true;
+	sidebarOpen = false;
+	}}
+>
+	Select location on map
+</button>
+{/if}
+
+<!-- TRANSPORT MODE LOADING SCREEN (when selecting transport mode) -->
+<Loading 
+  show={isIsochroneLoading} 
+  onClose={() => abortPointToPoi()} 
+/>
 
 <!--TOP NAVIGATION BAR-->
 <div
@@ -365,46 +531,61 @@
   </div>
 
   <!-- Transport Modes -->
-  <div class="grid grid-cols-4 gap-3 mt-4">
-    {#each transportModes as t}
-      <button
-        class="
-            flex items-center justify-center p-3 rounded-lg border transition
-            bg-gray-100
-            [&>span>svg]:stroke-current
-          "
-        class:bg-gray-300={mode === t.value}
-        class:text-white={mode === t.value}
-        class:border-gray-300={mode === t.value}
-        class:bg-gray-100={mode !== t.value}
-        class:text-gray-300={mode !== t.value}
-        on:click={() => handleModeSelect(t.value)}
-      >
-        <span class="w-6 h-6 [&>svg]:w-full [&>svg]:h-full">{@html t.icon}</span
+  <div class="mt-">
+    <h1 class="text-sm font-semibold text-gray-900 mb-4">Transport Mode</h1>
+    <div class="grid grid-cols-4 gap-2">
+      {#each transportModes as t}
+        <button
+          class="flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all
+                 hover:border-blue-400"
+          class:bg-blue-500={mode === t.value}
+          class:text-white={mode === t.value}
+          class:border-blue-500={mode === t.value}
+          class:bg-gray-50={mode !== t.value}
+          class:text-gray-600={mode !== t.value}
+          class:border-gray-200={mode !== t.value}
+          on:click={() => handleModeSelect(t.value)}
         >
-      </button>
-    {/each}
+          <span class="w-6 h-6 mb-1 [&>svg]:w-full [&>svg]:h-full"
+            >{@html t.icon}</span>
+          <span class="text-xs font-medium capitalize">{t.value}</span>
+        </button>
+      {/each}
+    </div>
   </div>
 
-  <!-- Select location button -->
-  <button
-    class="w-full mt-2 mb-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium"
-    on:click={() => {
-      selectingLocation = true;
-      sidebarOpen = false;
-    }}
-  >
-    Select location on map
-  </button>
-
-  <!-- Transport Modes -->
-  <div class="grid grid-cols-4 gap-3 mt-4">
-    {#each transportModes as t}
-      <!-- ... your existing buttons ... -->
-    {/each}
+  <!-- Select location and Clear buttons -->
+  <div class="grid grid-cols-4 gap-2 mt-4 mb-4">
+    <button
+      class="col-span-3 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium"
+      on:click={() => {
+        selectingLocation = true;
+        sidebarOpen = false;
+      }}
+    >
+      Select Location on Map
+    </button>
+    
+    <button
+      class="col-span-1 py-3 rounded-lg text-sm font-medium transition-all"
+      class:bg-red-500={locationSelected && (area_oi || poiMarkers.length > 0)}
+      class:text-white={locationSelected && (area_oi || poiMarkers.length > 0)}
+      class:hover:bg-red-600={locationSelected && (area_oi || poiMarkers.length > 0)}
+      class:bg-gray-200={!(locationSelected && (area_oi || poiMarkers.length > 0))}
+      class:text-gray-400={!(locationSelected && (area_oi || poiMarkers.length > 0))}
+      class:cursor-not-allowed={!(locationSelected && (area_oi || poiMarkers.length > 0))}
+      disabled={!(locationSelected && (area_oi || poiMarkers.length > 0))}
+      on:click={clearSelection}
+    >
+      Clear
+    </button>
   </div>
 
-  <Score />
+  <!-- Accessibility Score Section -->
+  <div class="mt-6">
+    <h3 class="text-base font-semibold text-gray-600 mb-4">Accessibility Score</h3>
+    <Score {locationSelected} {userLat} {userLng} {mode} />
+  </div>
 
   <Heatmap
   {L}
@@ -413,8 +594,6 @@
   loading={heatmapPoisLoading}
   error={heatmapPoisError}
 />
-
-
 </div>
 
 <!--button to zoom to location-->
@@ -439,6 +618,11 @@
 
 <div bind:this={mapDiv} class="absolute inset-0 z-[1] top-14"></div>
 
+<Modal show={selectingLocation} onClose={() => selectingLocation = false}>
+  <h2>Selecting location...</h2>
+  <p>Close this message to cancel.</p>
+</Modal>
+
 <style>
   .controls {
     position: absolute;
@@ -455,4 +639,41 @@
     height: 100%;
     width: 100%;
   }
+
+  .icon-white :global(svg) {
+  stroke: white !important;
+  fill: white !important;
+  color: white !important;
+  }
+
+  /* Selecting location mode */
+  :global(.selecting-location) {
+    cursor: crosshair !important;
+  }
+
+  :global(.selecting-location.leaflet-container.leaflet-drag-target) {
+    cursor: grabbing !important;
+  }
+
+  /* Pulsing circle animation */
+  .pulse-circle {
+    width: 40px;
+    height: 40px;
+    background-color: #3b82f6;
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.3);
+      opacity: 0.5;
+    }
+  }
 </style>
+
+<ErrorNotification bind:this={notificationComponent} />
