@@ -10,6 +10,10 @@
 	import educationURL from '$lib/assets/education_rainbow.png'
 	import foodURL from '$lib/assets/food_Lime.png'
 	import { getPointToPoi } from "$lib/services/isochrone-service";
+	import { getHeatmapPois, type HeatmapPoi } from "$lib/services/heatmap-service";
+	import { AMENITIES, AMENITY_GRADIENTS, type Amenity } from "$lib/constants/amenities";
+	import Heatmap from "$lib/components/Heatmap.svelte";
+
 
 	let mapDiv!: HTMLDivElement;
 	let sidebarOpen = false;
@@ -22,6 +26,14 @@
 	let selectedMarker: any = null; // store last selected location
 	let area_oi: import("leaflet").GeoJSON<any> | null = null; // store area of interest layer
 	let poiMarkers: any[] = [];
+
+	// Heatmap Variables
+	
+
+	let heatmapPois: HeatmapPoi[] = [];
+	let heatmapPoisLoading = false;
+	let heatmapPoisError: string | null = null;
+
 
 	// Leaflet map and library reference (declared here to be accessible in functions)
 	let L: typeof import("leaflet") | null = null;
@@ -63,8 +75,10 @@
 
 	// Run once when the component is first added to the page
 	onMount(async () => {
-		L = await import("leaflet");
-		await import("leaflet/dist/leaflet.css");
+		const leaflet = await import("$lib/leaflet-client");
+		L = leaflet.default as any;
+		console.log("[leaflet] typeof heatLayer =", typeof (L as any).heatLayer);
+
 
 		const osm = L.tileLayer(
 			"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -96,6 +110,21 @@
 		});
 
 		storeMap = map;
+
+		// --- Heatmap init fetch (RUNS ONCE) ---
+		heatmapPoisLoading = true;
+		heatmapPoisError = null;
+
+		try {
+		heatmapPois = await getHeatmapPois();
+		console.log("[heatmap_pois] loaded:", heatmapPois.length, heatmapPois);
+		} catch (e) {
+		console.error("[heatmap_pois] failed:", e);
+		heatmapPoisError = e instanceof Error ? e.message : String(e);
+		} finally {
+		heatmapPoisLoading = false;
+		}
+
 
 		// New Layer Control
 		const baseLayers = {
@@ -195,6 +224,7 @@
 		);
 	}
 
+
 	// Go to user location
 	function goToMyLocation() {
 		if (userLat && userLng) {
@@ -210,7 +240,7 @@
 		mode: "walk" | "bike" | "car",
 	) {
 		try {
-			const data = await getPointToPoi(longitude, latitude, mode, 15);
+			const data = await getPointToPoi(longitude, latitude, mode, 900);
 
 			console.log("Point-to-poi response: ", data);
 
@@ -318,9 +348,12 @@
 
 <!--SIDENAV-->
 <div
-  class="overflow-auto fixed top-14 left-0 h-[calc(100%-3.5rem)] w-74 bg-white shadow-xl p-4 transition-transform duration-300 z-[1004]"
+  class="fixed top-14 left-0 h-[calc(100%-3.5rem)] w-[296px] max-w-[400px] min-w-[400px]
+       bg-white shadow-xl p-4 transition-transform duration-300 z-[1004]
+       overflow-y-auto overflow-x-hidden"
   class:translate-x-[-100%]={!sidebarOpen}
 >
+
   <!-- Search Field -->
   <div class="mt-0">
     <div class="relative mb-4">
@@ -380,7 +413,17 @@
       <!-- ... your existing buttons ... -->
     {/each}
   </div>
+
   <Score />
+
+  <Heatmap
+  {L}
+  {map}
+  heatmapPois={heatmapPois}
+  loading={heatmapPoisLoading}
+  error={heatmapPoisError}
+/>
+
 
 </div>
 

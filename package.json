@@ -26,6 +26,7 @@
 		"chart.js": "^4.5.1",
 		"chartjs-plugin-dragdata": "^2.3.1",
 		"leaflet": "^1.9.4",
+		"leaflet.heat": "^0.2.0",
 		"xmlhttprequest": "^1.8.0"
 	}
 }
