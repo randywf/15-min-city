@@ -2,7 +2,7 @@
 	import { onMount } from "svelte";
 	import Sidebar from "$lib/components/Sidebar.svelte";
 	import MapCanvas from "$lib/components/MapCanvas.svelte";
-	import Loading from "$lib/components/Loading.svelte";
+	import Backdrop from "$lib/components/Backdrop.svelte";
 	import ErrorNotification from "$lib/components/ErrorNotification.svelte";
 	import { getPointToPoi } from "$lib/services/isochrone-service";
 	import {
@@ -290,45 +290,120 @@
 	     ============================================ -->
 
 	<!-- Initial Loading Screen -->
-	{#if ui.isInitialLoading}
+	<Backdrop show={ui.isInitialLoading} variant="dark" zIndex={9999}>
 		<div
-			class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]"
+			class="bg-white rounded-lg p-8 shadow-2xl flex flex-col items-center gap-4"
 		>
-			<div
-				class="bg-white rounded-lg p-8 shadow-2xl flex flex-col items-center gap-4"
-			>
-				<div class="animate-spin">
-					<svg
-						class="w-12 h-12 text-blue-600"
-						xmlns="http://www.w3.org/2000/svg"
-						fill="none"
-						viewBox="0 0 24 24"
-					>
-						<circle
-							class="opacity-25"
-							cx="12"
-							cy="12"
-							r="10"
-							stroke="currentColor"
-							stroke-width="4"
-						></circle>
-						<path
-							class="opacity-75"
-							fill="currentColor"
-							d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-						></path>
-					</svg>
-				</div>
-				<p class="text-lg font-semibold text-gray-700">
-					Loading map and data...
+			<div class="animate-spin">
+				<svg
+					class="w-12 h-12 text-blue-600"
+					xmlns="http://www.w3.org/2000/svg"
+					fill="none"
+					viewBox="0 0 24 24"
+				>
+					<circle
+						class="opacity-25"
+						cx="12"
+						cy="12"
+						r="10"
+						stroke="currentColor"
+						stroke-width="4"
+					></circle>
+					<path
+						class="opacity-75"
+						fill="currentColor"
+						d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+					></path>
+				</svg>
+			</div>
+			<p class="text-lg font-semibold text-gray-700">Loading map and data...</p>
+		</div>
+	</Backdrop>
+
+	<!-- Transport Mode Loading -->
+	<Backdrop
+		show={ui.isIsochroneLoading}
+		variant="blur"
+		zIndex={10500}
+		closeable={true}
+		onClose={handleAbortPoi}
+	>
+		<div
+			class="bg-white rounded-lg p-6 shadow-xl flex flex-col items-center gap-3"
+			style="width: min(360px, 90vw); border: 1px solid rgba(147, 197, 253, 0.5); padding-right: 32px;"
+		>
+			<div style="position: relative; width: 96px; height: 96px">
+				<span
+					style="
+						position: absolute;
+						inset: 0;
+						border-radius: 9999px;
+						border: 3px solid transparent;
+						border-top-color: #2563eb;
+						border-right-color: #93c5fd;
+						animation: iso-spin 1.35s linear infinite;
+						display: block;
+					"
+				></span>
+				<span
+					style="
+						position: absolute;
+						inset: 12px;
+						border-radius: 9999px;
+						border: 3px solid transparent;
+						border-top-color: #2563eb;
+						border-right-color: #93c5fd;
+						opacity: 0.45;
+						animation: iso-spin 1.7s linear infinite;
+						display: block;
+					"
+				></span>
+				<span
+					style="
+						position: absolute;
+						width: 18px;
+						height: 18px;
+						border-radius: 9999px;
+						background: #2563eb;
+						top: 50%;
+						left: 50%;
+						transform: translate(-50%, -50%);
+						animation: iso-pulse 1.6s ease-in-out infinite;
+						box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.32);
+						display: block;
+					"
+				></span>
+			</div>
+			<div>
+				<p class="font-bold text-gray-900 m-0">Analyzing reachable area...</p>
+				<p class="text-gray-600 text-sm m-0 mt-0.5">
+					Finding amenities within 15 minutes
 				</p>
 			</div>
 		</div>
-	{/if}
-
-	<!-- Transport Mode Loading -->
-	<Loading show={ui.isIsochroneLoading} onClose={handleAbortPoi} />
+	</Backdrop>
 </div>
 
 <!-- Error Notifications -->
 <ErrorNotification bind:this={notificationComponent} />
+
+<style>
+	:global {
+		@keyframes iso-spin {
+			to {
+				transform: rotate(360deg);
+			}
+		}
+		@keyframes iso-pulse {
+			0% {
+				box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.32);
+			}
+			70% {
+				box-shadow: 0 0 0 18px rgba(37, 99, 235, 0);
+			}
+			100% {
+				box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+			}
+		}
+	}
+</style>
