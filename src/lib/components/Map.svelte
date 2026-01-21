@@ -13,6 +13,7 @@
 	import { getHeatmapPois, type HeatmapPoi } from "$lib/services/heatmap-service";
 	import { AMENITIES, AMENITY_GRADIENTS, type Amenity } from "$lib/constants/amenities";
 	import Heatmap from "$lib/components/Heatmap.svelte";
+	import Modal from "$lib/components/Modal.svelte";
 
 
 	let mapDiv!: HTMLDivElement;
@@ -448,6 +449,11 @@
 </div>
 
 <div bind:this={mapDiv} class="absolute inset-0 z-[1] top-14"></div>
+
+<Modal show={selectingLocation} onClose={() => selectingLocation = false}>
+  <h2>Selecting location...</h2>
+  <p>Close this message to cancel.</p>
+</Modal>
 
 <style>
   .controls {
