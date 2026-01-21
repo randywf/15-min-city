@@ -24,6 +24,7 @@
 	let userLng: number | null = null;
 	let userAccuracy: number | null = null;
 	let selectingLocation = false; // select location mode
+  let poiAbortController: AbortController | null = null;
 	let selectedMarker: any = null; // store last selected location
 	let area_oi: import("leaflet").GeoJSON<any> | null = null; // store area of interest layer
 	let poiMarkers: any[] = [];
@@ -201,20 +202,7 @@
 
 				map!.setView([latitude, longitude], 15);
 
-				// remove previous marker and area
-				if (userMarker) map!.removeLayer(userMarker);
-				userMarker = L!
-					.circleMarker([latitude, longitude], {
-						radius: 8,
-						color: "red",
-						weight: 2,
-						fillColor: "red",
-						fillOpacity: 0.9,
-					})
-					.addTo(map!); // add new user marker
-
-				// remove previous markers and area
-				if (area_oi) clearMapLayers();
+				
 				drawPointToPoi(latitude, longitude, "walk"); // add the pois in the area
 			},
 			(err) => {
@@ -241,7 +229,27 @@
 		mode: "walk" | "bike" | "car",
 	) {
 		try {
-			const data = await getPointToPoi(longitude, latitude, mode, 900);
+      // remove previous marker and area
+      if (userMarker) map!.removeLayer(userMarker);
+
+      // remove previous markers and area
+      if (area_oi) clearMapLayers();
+
+      userMarker = L!
+        .circleMarker([latitude, longitude], {
+          radius: 8,
+          color: "red",
+          weight: 2,
+          fillColor: "red",
+          fillOpacity: 0.9,
+        })
+        .addTo(map!); // add new user marker
+
+
+      if (poiAbortController) poiAbortController.abort();
+      poiAbortController = new AbortController();
+			const data = await getPointToPoi(longitude, latitude, mode, 900, poiAbortController.signal);
+      poiAbortController = null;
 
 			console.log("Point-to-poi response: ", data);
 
@@ -304,10 +312,23 @@
 				});
 			}
 		} catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        console.log("Request aborted");
+        return;
+      }
 			console.error(err);
 			alert("Could not load point-to-poi result");
 		}
 	}
+
+  function abortPointToPoi() {
+    // remove previous marker and area
+    if (userMarker) map!.removeLayer(userMarker);
+
+    // cancel request
+    if (poiAbortController) poiAbortController.abort();
+    poiAbortController = null;
+  }
 
 	function clearMapLayers() {
 		// Remove markers
@@ -455,6 +476,16 @@
   <p>Close this message to cancel.</p>
 </Modal>
 
+<Modal show={poiAbortController !== null} onClose={abortPointToPoi}>
+  <div class="flex items-center gap-4">
+    <div class="pulse-circle"></div>
+    <div class="flex flex-col">
+      <h2>Finding nearby amenities...</h2>
+      <p>Close this message to cancel.</p>
+    </div>
+  </div>
+</Modal>
+
 <style>
   .controls {
     position: absolute;
@@ -479,5 +510,25 @@
 
   :global(.selecting-location.leaflet-container.leaflet-drag-target) {
     cursor: grabbing !important;
+  }
+
+  /* Pulsing circle animation */
+  .pulse-circle {
+    width: 40px;
+    height: 40px;
+    background-color: #3b82f6;
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.3);
+      opacity: 0.5;
+    }
   }
 </style>

@@ -4,11 +4,12 @@ export async function getPointToPoi(
 	longitude: number,
 	latitude: number,
 	mode: "walk" | "bike" | "car",
-	time: number = 600
+	time: number = 600,
+	signal?: AbortSignal
 ) {
 	const url = `http://127.0.0.1:8000/point_to_poi?longitude=${longitude}&latitude=${latitude}&mode=${mode}&time=${time}`;
 
-	const res = await fetch(url);
+	const res = await fetch(url, { signal });
 
 	if (!res.ok) {
 		throw new Error(`Request failed with status ${res.status}`);
