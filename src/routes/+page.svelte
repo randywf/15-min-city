@@ -1,7 +1,5 @@
 <script>
-  import Map from '$lib/components/Map.svelte';
+  import MapView from '$lib/components/MapView.svelte';
 </script>
 
-<div style="height: 100vh;">
-  <Map />
-</div>
+<MapView />
