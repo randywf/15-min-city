@@ -9,6 +9,7 @@
 	import search from "$lib/assets/search.svg?raw";
 	import educationURL from '$lib/assets/education_rainbow.png'
 	import foodURL from '$lib/assets/food_Lime.png'
+	import ErrorNotification from "$lib/components/ErrorNotification.svelte";
 	import { getPointToPoi } from "$lib/services/isochrone-service";
 	import { getHeatmapPois, type HeatmapPoi } from "$lib/services/heatmap-service";
 	import { AMENITIES, AMENITY_GRADIENTS, type Amenity } from "$lib/constants/amenities";
@@ -21,6 +22,7 @@
 	let storeMap: any;
 	let userLat: number | null = null;
 	let userLng: number | null = null;
+	let notificationComponent: ErrorNotification;
 	let userAccuracy: number | null = null;
 	let selectingLocation = false; // select location mode
 	let selectedMarker: any = null; // store last selected location
@@ -326,7 +328,7 @@
 			locationSelected = true;
 		} catch (err) {
 			console.error(err);
-			alert("Could not load point-to-poi result");
+			notificationComponent.addNotification("The backend server is not responding.")
 		}
 	}
 
@@ -645,3 +647,5 @@
   color: white !important;
   }
 </style>
+
+<ErrorNotification bind:this={notificationComponent} />
