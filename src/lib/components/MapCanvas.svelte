@@ -56,8 +56,12 @@
 	/**
 	 * When POI data changes, render it on the map
 	 */
-	$: if (poiData && L && map) {
-		renderPoiData(poiData);
+	$: if (L && map) {
+		if (poiData) {
+			renderPoiData(poiData);
+		} else {
+			clearMapLayers();
+		}
 	}
 
 	/**
@@ -241,13 +245,21 @@
 	/**
 	 * Update user marker when location changes
 	 */
-	$: if (location.lat && location.lng && L && map && location.selected) {
-		// Remove old marker
-		if (userMarker) {
-			map.removeLayer(userMarker);
+	$: if (L && map) {
+		if (location.lat && location.lng && location.selected) {
+			// Remove old marker
+			if (userMarker) {
+				map.removeLayer(userMarker);
+			}
+			// Create new marker
+			userMarker = createUserMarker(location.lat, location.lng);
+		} else {
+			// Clear marker when location is not selected
+			if (userMarker) {
+				map.removeLayer(userMarker);
+				userMarker = null;
+			}
 		}
-		// Create new marker
-		userMarker = createUserMarker(location.lat, location.lng);
 	}
 
 	onMount(async () => {
