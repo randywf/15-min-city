@@ -1,4 +1,97 @@
-# 15 Minute City
+<a id="readme-top"></a>
+
+<div align="center">
+ <h1>Welcome to the frontend repository for the 15-Minute City application</h1>
+</div>
+
+<br />
+<div align="center">
+  <p align="center">
+    <img src="src/lib/assets/logo_15min.png" alt="15-min-city" width="300"/>
+  </p>
+
+  
+
+  <p align="center">
+    An application to explore the city of Münster and find your ideal location!
+    <br />
+    <a href="https://github.com/othneildrew/Best-README-Template"><strong>Explore the docs »</strong></a>
+    <br />
+    <br />
+    <a href="https://github.com/othneildrew/Best-README-Template">View Demo</a>
+    &middot;
+    <a href="https://github.com/othneildrew/Best-README-Template/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
+    &middot;
+    <a href="https://github.com/othneildrew/Best-README-Template/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+  </p>
+</div>
+
+## Contributors
+
+<p align="center">
+  <a href="https://github.com/Hex-commits">
+    <img src="https://avatars.githubusercontent.com/Hex-commits?s=120" width="80" alt="Jan-Philipp Wegmeyer"/>
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/randywf">
+    <img src="https://avatars.githubusercontent.com/randywf?s=120" width="80" alt="Randy Flores"/>
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/pmunding">
+    <img src="https://avatars.githubusercontent.com/pmunding?s=120" width="80" alt="Philipp Mundinger"/>
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/nimesh7814">
+    <img src="https://avatars.githubusercontent.com/nimesh7814?s=120" width="80" alt="Nimesh Akalanka"/>
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/laurenfissel11-ux">
+    <img src="https://avatars.githubusercontent.com/laurenfissel11-ux?s=120" width="80" alt="Lauren"/>
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/Aadilwaris">
+     <img src="https://avatars.githubusercontent.com/Aadilwaris?s=120" width="80" alt="Adil Waris"/>
+  </a>
+</p>
+
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#acknowledgments">Acknowledgments</a></li>
+  </ol>
+</details>
+
+### Built With
+
+![TypeScript](https://img.shields.io/badge/TypeScript-4.x-blue)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES6-yellow)
+![HTML](https://img.shields.io/badge/HTML-5-orange)
+![Svelte](https://img.shields.io/badge/Svelte-Frontend-orange)
+![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-Utility--First-blueviolet)
+![Vite](https://img.shields.io/badge/Vite-Build%20Tool-purple)
+![OpenStreetMap](https://img.shields.io/badge/OpenStreetMap-Data-green)
+-
+
+## Description of the application
 
 An interactive web application for analyzing urban accessibility through the lens of the 15-minute city concept.
 
@@ -17,7 +110,17 @@ This tool helps users visualize which amenities and points of interest are reach
 
 ### Supported Amenity Types
 
-The application tracks 22 different amenity categories including: restaurants, cafes, bars, pubs, fast food, ice cream shops, schools, libraries, pharmacies, clinics, theatres, cinemas, bicycle parking, regular parking, fuel stations, BBQ areas, biergartens, and public toilets.
+| Category | Amenity |   | Category | Amenity |
+|---------|---------|---|----------|---------|
+| Food & Drinks | Restaurant |   | Culture & Entertainment | Cinema |
+| Food & Drinks | Café |   | Mobility | Bicycle Parking |
+| Food & Drinks | Bar |   | Mobility | Parking |
+| Food & Drinks | Pub |   | Mobility | Fuel Station |
+| Food & Drinks | Fast Food |   | Leisure | BBQ Area |
+| Food & Drinks | Ice Cream Shop |   | Leisure | Biergarten |
+| Education & Culture | School |   | Public Services | Public Toilets |
+| Education & Culture | Library |   | Health | Clinic |
+| Health | Pharmacy |   | Culture & Entertainment | Theatre |
 
 ## Tech Stack
 
@@ -121,4 +224,12 @@ To deploy your app, you may need to install an [adapter](https://svelte.dev/docs
 
 ## License
 
-See the [LICENSE](LICENSE) file for details.
+<div align="center" style="font-size: 0.85em; color: #666; line-height: 1.6;">
+
+© 2026 <strong>15-min-city</strong><br>
+<strong>Course:</strong> Geoinformation in Society<br>
+<strong>Responsible:</strong> Contact contributors<br>
+<strong>Date:</strong> 02.02.2026<br>
+<strong>University of Münster</strong>
+
+</div>
