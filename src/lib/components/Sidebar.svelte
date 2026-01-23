@@ -73,23 +73,26 @@
   <!-- Transport Modes -->
   <div class="mt-">
     <h1 class="text-sm font-semibold text-gray-900 mb-4">Transport Mode</h1>
-    <div class="grid grid-cols-4 gap-2">
+    <div class="flex gap-3 w-full">
       {#each TRANSPORT_MODES as t}
         <button
-          class="flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all
-               hover:border-blue-400"
-          class:bg-blue-500={mode === t.value}
-          class:text-white={mode === t.value}
+          class="flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all
+               hover:border-blue-400 flex-1"
+          class:bg-blue-100={mode === t.value}
           class:border-blue-500={mode === t.value}
           class:bg-gray-50={mode !== t.value}
-          class:text-gray-600={mode !== t.value}
           class:border-gray-200={mode !== t.value}
           on:click={() => handleModeClick(t.value)}
         >
-          <span class="w-6 h-6 mb-1 [&>svg]:w-full [&>svg]:h-full"
+          <span class="w-7 h-7 mb-2 [&>svg]:w-full [&>svg]:h-full [&_path]:stroke-current [&_path]:fill-current"
+            class:text-blue-500={mode === t.value}
+            class:text-gray-600={mode !== t.value}
             >{@html t.icon}</span
           >
-          <span class="text-xs font-medium capitalize">{t.value}</span>
+          <span class="text-xs font-medium capitalize transition-colors"
+            class:text-blue-500={mode === t.value}
+            class:text-gray-600={mode !== t.value}
+          >{t.value}</span>
         </button>
       {/each}
     </div>
