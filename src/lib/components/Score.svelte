@@ -76,97 +76,156 @@
   // Reactive values based on amenities
   $: values = calculateScores(amenities);
 
-onMount(() => {
+  onMount(() => {
     chart = new Chart(canvas, {
       type: "radar",
       data: {
         labels,
-        datasets: labels.map((label, index) => ({
-          label,
-          data: labels.map((l, i) => (i === index ? values[index] : 0)),
-          fill: true,
-          backgroundColor: CATEGORY_COLORS[label].background,
-          borderColor: CATEGORY_COLORS[label].border,
-          pointBackgroundColor: CATEGORY_COLORS[label].border,
-          borderWidth: 2
-        }))
+        datasets: [
+          {
+            label: "Accessibility Score",
+            data: values,
+            fill: true,
+            backgroundColor: "rgba(59, 130, 246, 0.15)",
+            borderColor: "rgba(59, 130, 246, 0.8)",
+            pointBackgroundColor: labels.map(label => CATEGORY_COLORS[label].hex),
+            pointBorderColor: "#fff",
+            pointHoverBackgroundColor: "#fff",
+            pointHoverBorderColor: labels.map(label => CATEGORY_COLORS[label].hex),
+            pointBorderWidth: 2,
+            pointHoverRadius: 6,
+            pointRadius: 5,
+            borderWidth: 3
+          }
+        ]
       },
       options: {
+        responsive: true,
+        maintainAspectRatio: true,
         layout: {
-          padding: 0
+          padding: {
+            top: 10,
+            bottom: 5,
+            left: 10,
+            right: 10
+          }
         },
         scales: {
           r: {
             min: 0,
             max: 10,
+            beginAtZero: true,
             ticks: {
+              stepSize: 2,
               font: {
-                size: 14,
-                family: 'Arial'
+                size: 11,
+                family: "'Inter', 'Arial', sans-serif",
+                weight: '500'
               },
-              color: '#d1d5db',
-              backdropColor: 'rgba(255, 255, 255, 0.9)',
-              backdropPadding: 2
+              color: '#9ca3af',
+              backdropColor: 'rgba(255, 255, 255, 0.95)',
+              backdropPadding: 3,
+              showLabelBackdrop: true
             },
             pointLabels: {
               font: {
-                size: 13,
-                family: 'Arial'
+                size: 12,
+                family: "'Inter', 'Arial', sans-serif",
+                weight: '300'
               },
-              color: '#5c5c5c',
-              padding: 5
+              color: '#374151',
+              padding: 8,
+              callback: function(label) {
+                // Wrap long labels
+                if (label.length > 15) {
+                  const words = label.split(' ');
+                  if (words.length > 2) {
+                    return [words.slice(0, 2).join(' '), words.slice(2).join(' ')];
+                  }
+                }
+                return label;
+              }
             },
             grid: {
-              color: '#d1d5db'
+              color: 'rgba(229, 231, 235, 0.8)',
+              lineWidth: 1.5,
+              circular: true
             },
             angleLines: {
-              color: '#d1d5db'
+              color: 'rgba(229, 231, 235, 0.8)',
+              lineWidth: 1.5
             }
           }
         },
         plugins: {
           legend: {
             display: false
+          },
+          tooltip: {
+            enabled: true,
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            titleFont: {
+              size: 13,
+              weight: 'bold'
+            },
+            bodyFont: {
+              size: 12
+            },
+            padding: 10,
+            cornerRadius: 6,
+            displayColors: true,
+            callbacks: {
+              label: function(context) {
+                return `Score: ${context.parsed.r}/10`;
+              }
+            }
           }
         },
-        maintainAspectRatio: true
+        interaction: {
+          mode: 'nearest',
+          intersect: false
+        }
       }
     });
   });
 
   // Update chart when values change
   $: if (chart) {
-    chart.data.datasets.forEach((dataset, index) => {
-      dataset.data = labels.map((l, i) => (i === index ? values[index] : 0));
-    });
+    chart.data.datasets[0].data = values;
+    chart.data.datasets[0].pointBackgroundColor = labels.map(label => CATEGORY_COLORS[label].hex);
+    chart.data.datasets[0].pointHoverBorderColor = labels.map(label => CATEGORY_COLORS[label].hex);
     chart.update();
   }
 </script>
 
-<div class="p-0">
-  <canvas bind:this={canvas} width="100" height="100"></canvas>
+<div class="p-3 bg-gradient-to-br from-gray-50 to-white rounded-lg">
+  <div class="relative">
+    <canvas bind:this={canvas} class="max-w-full h-auto"></canvas>
+  </div>
 
-  <div class="mt-0 space-y-2">
-    <div class="text-xs text-gray-600 text-center">
+  <div class="mt-3 space-y-2 px-1">
+    <div class="text-xs text-gray-600 text-center pb-2 border-b border-gray-200">
       Total number of POIs: <span class="font-semibold">{amenities.length}</span>
     </div>
     
     {#each labels as label, i}
-      <div class="flex items-center gap-3">
-        <div class="w-32 flex items-center gap-2">
+      <div class="flex items-center gap-2 py-1 px-2 rounded-md hover:bg-gray-50 transition-colors">
+        <div class="flex items-center gap-1.5 min-w-[140px]">
           <div 
-            class="w-3 h-3 rounded-full flex-shrink-0"
+            class="w-3 h-3 rounded-full flex-shrink-0 shadow-sm"
             style="background-color: {CATEGORY_COLORS[label].hex};"
           ></div>
-          <span class="text-sm">{label}</span>
+          <span class="text-xs font-medium text-gray-700">{label}</span>
         </div>
-        <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden shadow-inner">
           <div 
-            class="transition-all duration-300"
-            style="width: {(values[i] / 10) * 100}%; background-color: {CATEGORY_COLORS[label].hex};"
+            class="h-full transition-all duration-500 ease-out rounded-full"
+            style="width: {(values[i] / 10) * 100}%; background: linear-gradient(90deg, {CATEGORY_COLORS[label].hex}, {CATEGORY_COLORS[label].border});"
           ></div>
         </div>
-        <div class="w-12 text-right tabular-nums">{values[i].toFixed(1)}</div>
+        <div class="w-10 text-right tabular-nums text-xs font-semibold" style="color: {CATEGORY_COLORS[label].hex};">
+          {values[i].toFixed(1)}
+        </div>
       </div>
     {/each}
   </div>
