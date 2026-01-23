@@ -5,10 +5,10 @@
   let canvas: HTMLCanvasElement;
   let chart: Chart<"radar">;
 
-  const labels = ["Workplaces", "Education", "Shopping", "Restaurants", "Sports"];
+  const labels = ["Mobility & Parking", "Healthcare", "Education", "Other", "Entertainment" , "Food & Beverage"];
 
   // slider values (1..10)
-  let values: number[] = [2.7, 3.8, 4.6, 2.2, 3.2];
+  let values: number[] = [2.7, 3.8, 4.6, 2.2, 3.2, 4.2];
 
   onMount(() => {
     chart = new Chart(canvas, {
