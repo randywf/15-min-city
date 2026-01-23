@@ -378,7 +378,7 @@
 					"
         ></span>
       </div>
-      <div>
+      <div class="text-center">
         <p class="font-bold text-gray-900 m-0">Analyzing reachable area...</p>
         <p class="text-gray-600 text-sm m-0 mt-0.5">
           Finding amenities within 15 minutes

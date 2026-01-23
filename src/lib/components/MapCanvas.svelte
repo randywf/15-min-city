@@ -9,6 +9,59 @@
 	import { MARKER_STYLES, ICON_CONFIG } from "$lib/constants/map";
 	import { toSentenceCase, getIconForAmenity } from "$lib/utils/map";
 	import { CATEGORY_COLORS, ISOCHRONE_COLORS } from "$lib/constants/colors";
+	import OutofBound from "$lib/components/OutofBound.svelte";
+
+	let outofBoundComponent: OutofBound;
+
+	// Check the location of the given point
+	function isPointInBoundary(lat: number, lng: number): boolean {
+		if (!boundaryLayer) return false;
+		
+		const point = L!.latLng(lat, lng);
+		let isInside = false;
+		
+		boundaryLayer.eachLayer((layer: any) => {
+			// Check if the layer has a contains method (for polygons)
+			if (layer.getBounds && layer.getBounds().contains(point)) {
+				// More accurate check: use turf or leaflet-pip, or manual ray casting
+				// Simple approach: convert to GeoJSON and check
+				const latLngs = layer.getLatLngs();
+				
+				// Handle MultiPolygon (array of arrays)
+				if (Array.isArray(latLngs)) {
+					for (const polygonRing of latLngs) {
+						const rings = Array.isArray(polygonRing[0]) ? polygonRing : [polygonRing];
+						for (const ring of rings) {
+							if (isPointInPolygon(point, ring)) {
+								isInside = true;
+								return;
+							}
+						}
+					}
+				}
+			}
+		});
+		
+		return isInside;
+	}
+
+	// Ray casting algorithm for point-in-polygon
+	function isPointInPolygon(point: L.LatLng, polygon: L.LatLng[]): boolean {
+		let inside = false;
+		const x = point.lng, y = point.lat;
+		
+		for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+			const xi = polygon[i].lng, yi = polygon[i].lat;
+			const xj = polygon[j].lng, yj = polygon[j].lat;
+			
+			const intersect = ((yi > y) !== (yj > y)) &&
+				(x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+			
+			if (intersect) inside = !inside;
+		}
+		
+		return inside;
+	}
 
 	// Add the münster boundary layer
 	async function addMuensterBoundary() {
@@ -230,6 +283,13 @@
 		map!.on("click", async (e: any) => {
 			if (selectingLocation) {
 				const { lat, lng } = e.latlng;
+				
+				// Check if point is within Münster boundary
+				if (!isPointInBoundary(lat, lng)) {
+					outofBoundComponent.showOutOfBoundError();
+					return;
+				}
+				
 				map!.setView([lat, lng], 15);
 
 				// Remove old marker
@@ -405,6 +465,8 @@
   enabledCategories={enabledCategories}
   onToggleCategory={toggleCategory}
 />
+
+<OutofBound bind:this={outofBoundComponent} />
 
 <div class="absolute bottom-28 right-3 z-[10000]">
   <button
