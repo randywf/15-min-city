@@ -8,6 +8,7 @@
 	import type { TransportMode } from "$lib/types/map";
 	import { MARKER_STYLES, ICON_CONFIG } from "$lib/constants/map";
 	import { toSentenceCase, getIconForAmenity } from "$lib/utils/map";
+	import { CATEGORY_COLORS } from "$lib/constants/colors";
 
 	// Props
 	export let mode: TransportMode;
@@ -51,15 +52,6 @@
 		]
 	};
 
-	const CATEGORY_COLORS: Record<string, string> = {
-		"Mobility & Parking": "#3b82f6",
-		Healthcare: "#dc2626",
-		Education: "#22c55e",
-		Entertainment: "#a855f7",
-		"Food & Beverage": "#f97316",
-		Other: "#6b7280"
-	};
-
 	let enabledCategories: Record<string, boolean> = {
 		"Mobility & Parking": true,
 		Healthcare: true,
@@ -98,7 +90,16 @@
 		...enabledCategories,
 		[category]: !enabledCategories[category],
 		};
-	}	
+	}
+	
+	// Map amenity type to category
+	function findCategoryForAmenity(amenityType: string | undefined): string | null {
+    if (!amenityType) return null;
+    const match = Object.entries(CATEGORY_MAPPINGS).find(([, types]) =>
+        types.includes(amenityType)
+    );
+    return match ? match[0] : null;
+	}
 
 	/**
 	 * Add/remove selecting-location class for cursor change
@@ -253,24 +254,26 @@
 
 			if (enabledAmenityTypes.size === 0) return;
 
-			const icons = {
-				food: L.icon({ iconUrl: foodURL, ...ICON_CONFIG }),
-				education: L.icon({ iconUrl: educationURL, ...ICON_CONFIG }),
-			};
+			const baseMarkerStyle = { ...MARKER_STYLES, radius: 7 };
 
 			data.amenities.forEach((poi: any) => {
 				if (poi.lat && poi.lon) {
 					const amenityType = poi.amenity ?? poi.tags?.amenity;
-					if (!amenityType || !enabledAmenityTypes.has(amenityType)) return;
-					const selectedIcon = getIconForAmenity(poi, icons);
-					const amenityLabel = toSentenceCase(poi.amenity);
+					const category = findCategoryForAmenity(amenityType);
+					if (!amenityType || !category || !enabledAmenityTypes.has(amenityType)) return;
+
+					const color = CATEGORY_COLORS[category] ?? "#6b7280";
 					const marker = L!
-						.marker([poi.lat, poi.lon], {
-							icon: selectedIcon,
-							title: amenityLabel,
+						.circleMarker([poi.lat, poi.lon], {
+							...baseMarkerStyle,
+							color,          // stroke
+							fillColor: color,
+							fillOpacity: 0.8,
 						})
 						.addTo(map!)
-						.bindPopup(`<b>Category: </b><b>${amenityLabel}</b>`);
+						.bindPopup(
+							`<b>Category:</b> ${category}<br/><b>Amenity:</b> ${toSentenceCase(amenityType)}`
+						);
 
 					poiMarkers.push(marker);
 				}
