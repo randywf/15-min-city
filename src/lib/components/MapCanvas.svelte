@@ -4,6 +4,7 @@
 	import educationURL from "$lib/assets/education_rainbow.png";
 	import foodURL from "$lib/assets/food_Lime.png";
 	import Modal from "$lib/components/Modal.svelte";
+	import LayerPanel from "$lib/components/LayerPanel.svelte";
 	import type { TransportMode } from "$lib/types/map";
 	import { MARKER_STYLES, ICON_CONFIG } from "$lib/constants/map";
 	import { toSentenceCase, getIconForAmenity } from "$lib/utils/map";
@@ -34,12 +35,70 @@
 		undefined;
 	export let onCancelSelection: (() => void) | undefined = undefined;
 
+	const CATEGORY_MAPPINGS: Record<string, string[]> = {
+		"Mobility & Parking": ["bicycle_parking", "parking", "fuel"],
+		Healthcare: ["clinic", "hospital", "pharmacy"],
+		Education: ["school", "library"],
+		Entertainment: ["theatre", "cinema"],
+		"Food & Beverage": ["restaurant", "bar", "bbq", "biergarten", "cafe", "fast_food", "food_court", "ice_cream", "pub"],
+		Other: [
+			"place_of_worship:christian",
+			"place_of_worship:islamic",
+			"place_of_worship:buddhist",
+			"place_of_worship:hindu",
+			"place_of_worship:jewish",
+			"toilets"
+		]
+	};
+
+	const CATEGORY_COLORS: Record<string, string> = {
+		"Mobility & Parking": "#3b82f6",
+		Healthcare: "#dc2626",
+		Education: "#22c55e",
+		Entertainment: "#a855f7",
+		"Food & Beverage": "#f97316",
+		Other: "#6b7280"
+	};
+
+	let enabledCategories: Record<string, boolean> = {
+		"Mobility & Parking": true,
+		Healthcare: true,
+		Education: true,
+		Entertainment: true,
+		"Food & Beverage": true,
+		Other: true
+	};
+
+	let showIsochrone = true;
+	let panelExpanded = false;
+
+	const categoryOrder = Object.keys(CATEGORY_MAPPINGS);
+
+	$: hasData = poiData && (poiData.amenities.length > 0 || poiData.polygon);
+
+
 	let mapDiv!: HTMLDivElement;
 	let L: typeof import("leaflet") | null = null;
 	let map: import("leaflet").Map | null = null;
 	let userMarker: import("leaflet").Layer | null = null;
 	let area_oi: import("leaflet").GeoJSON<any> | null = null;
 	let poiMarkers: import("leaflet").Marker[] = [];
+
+	// Handlers for LayerPanel
+	function togglePanel() {
+		panelExpanded = !panelExpanded;
+	}
+
+	function toggleIsochrone(value: boolean) {
+		showIsochrone = value;
+	}
+
+	function toggleCategory(category: string) {
+		enabledCategories = {
+		...enabledCategories,
+		[category]: !enabledCategories[category],
+		};
+	}	
 
 	/**
 	 * Add/remove selecting-location class for cursor change
@@ -58,6 +117,8 @@
 	 */
 	$: if (L && map) {
 		if (poiData) {
+			enabledCategories;
+			showIsochrone;
 			renderPoiData(poiData);
 		} else {
 			clearMapLayers();
@@ -177,12 +238,21 @@
 		clearMapLayers();
 
 		// Render polygon
-		if (data.polygon) {
+		if (data.polygon && showIsochrone) {
 			area_oi = L.geoJSON(data.polygon).addTo(map);
 		}
 
 		// Render POI markers
 		if (data.amenities?.length) {
+			const enabledAmenityTypes = new Set<string>();
+			Object.entries(enabledCategories).forEach(([cat, enabled]) => {
+				if (enabled) {
+					CATEGORY_MAPPINGS[cat]?.forEach((t) => enabledAmenityTypes.add(t));
+				}
+			});
+
+			if (enabledAmenityTypes.size === 0) return;
+
 			const icons = {
 				food: L.icon({ iconUrl: foodURL, ...ICON_CONFIG }),
 				education: L.icon({ iconUrl: educationURL, ...ICON_CONFIG }),
@@ -190,6 +260,8 @@
 
 			data.amenities.forEach((poi: any) => {
 				if (poi.lat && poi.lon) {
+					const amenityType = poi.amenity ?? poi.tags?.amenity;
+					if (!amenityType || !enabledAmenityTypes.has(amenityType)) return;
 					const selectedIcon = getIconForAmenity(poi, icons);
 					const amenityLabel = toSentenceCase(poi.amenity);
 					const marker = L!
@@ -272,6 +344,28 @@
 
 <!-- Map Container -->
 <div bind:this={mapDiv} class="absolute inset-0 z-[1] top-14"></div>
+
+<LayerPanel
+  hasData={!!hasData}
+  panelExpanded={panelExpanded}
+  onTogglePanel={togglePanel}
+  showIsochrone={showIsochrone}
+  onToggleIsochrone={toggleIsochrone}
+  poiData={poiData}
+  categoryOrder={categoryOrder}
+  categoryColors={CATEGORY_COLORS}
+  enabledCategories={enabledCategories}
+  onToggleCategory={toggleCategory}
+/>
+
+<div class="absolute bottom-28 right-3 z-[10000]">
+  <button
+    class="w-9 h-9 rounded-full bg-white shadow-lg border flex items-center justify-center hover:bg-gray-100"
+    on:click={goToMyLocation}
+  >
+    <span class="w-6 h-6 [&>svg]:w-full [&>svg]:h-full">{@html locationIcon}</span>
+  </button>
+</div>
 
 <!-- Floating Map Controls -->
 <div class="absolute bottom-28 right-3 z-[10000]">
