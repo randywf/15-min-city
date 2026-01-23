@@ -9,11 +9,8 @@
   export let categoryColors: Record<string, string>;
   export let enabledCategories: Record<string, boolean>;
   export let onToggleCategory: (category: string) => void;
-
-  const ISOCHRONE_COLORS = {
-    fill: "#6b7280",
-    stroke: "#4b5563",
-  };
+  
+  import { ISOCHRONE_COLORS } from "$lib/constants/colors";
 </script>
 
 {#if hasData}

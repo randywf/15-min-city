@@ -8,7 +8,7 @@
 	import type { TransportMode } from "$lib/types/map";
 	import { MARKER_STYLES, ICON_CONFIG } from "$lib/constants/map";
 	import { toSentenceCase, getIconForAmenity } from "$lib/utils/map";
-	import { CATEGORY_COLORS } from "$lib/constants/colors";
+	import { CATEGORY_COLORS, ISOCHRONE_COLORS } from "$lib/constants/colors";
 
 	// Props
 	export let mode: TransportMode;
@@ -240,7 +240,14 @@
 
 		// Render polygon
 		if (data.polygon && showIsochrone) {
-			area_oi = L.geoJSON(data.polygon).addTo(map);
+			area_oi = L.geoJSON(data.polygon, {
+				style: {
+					color: ISOCHRONE_COLORS.stroke, 
+					fillColor: ISOCHRONE_COLORS.fill,
+					fillOpacity: 0.1,                     
+					weight: 1                           
+				}
+			}).addTo(map);
 		}
 
 		// Render POI markers

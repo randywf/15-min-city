@@ -15,3 +15,8 @@ export const CATEGORY_COLORS_WITH_ALPHA: Record<string, { background: string; bo
     "Food & Beverage": { background: "rgba(249, 115, 22, 0.3)", border: "rgb(249, 115, 22)", hex: "#f97316" },
     "Other": { background: "rgba(107, 114, 128, 0.3)", border: "rgb(107, 114, 128)", hex: "#6b7280" }
 };
+
+export const ISOCHRONE_COLORS = {
+    fill: "#de6e12",  
+    stroke: "#c66702",
+};
