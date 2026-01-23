@@ -270,6 +270,7 @@
     {mode}
     {location}
     {heatmap}
+    amenities={poiData?.amenities || []}
     onModeSelect={handleModeSelect}
     onSelectLocation={handleSelectLocation}
     onClearSelection={handleClear}

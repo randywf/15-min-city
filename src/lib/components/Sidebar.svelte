@@ -22,6 +22,9 @@
     error: string | null;
   };
 
+  // Score calculation
+  export let amenities: any[] = [];
+
   // Event callbacks (Svelte 5 style)
   export let onModeSelect: ((event: { mode: string }) => void) | undefined =
     undefined;
@@ -121,7 +124,7 @@
     <h3 class="text-base font-semibold text-gray-600 mb-4">
       Accessibility Score
     </h3>
-    <Score />
+    <Score {amenities} />
   </div>
 
   <Heatmap
