@@ -10,6 +10,42 @@
 	import { toSentenceCase, getIconForAmenity } from "$lib/utils/map";
 	import { CATEGORY_COLORS, ISOCHRONE_COLORS } from "$lib/constants/colors";
 
+	// Add the münster boundary layer
+	async function addMuensterBoundary() {
+	if (!L || !map) return;
+	if (boundaryLayer) map.removeLayer(boundaryLayer);
+	
+	try {
+		const response = await fetch("/data/muenster_boundary.geojson");
+		let muensterBoundary = await response.json();
+		
+		// Remove CRS to avoid parsing issues
+		if (muensterBoundary.crs) {
+		delete muensterBoundary.crs;
+		}
+		
+		console.log("Boundary features:", muensterBoundary.features?.length);
+		
+		boundaryLayer = L.geoJSON(muensterBoundary, {
+		style: (feature) => ({
+			color: "#000000",
+			weight: 2,
+			fill: false,
+			fillOpacity: 0,
+		}),
+		interactive: false,
+		}).addTo(map!);
+		
+		// Fit map to boundary
+		const bounds = boundaryLayer.getBounds();
+		map!.fitBounds(bounds);
+		
+		console.log("Münster boundary loaded");
+	} catch (e) {
+		console.error("Failed to load Münster boundary:", e);
+	}
+	}
+
 	// Props
 	export let mode: TransportMode;
 	export let location: {
@@ -63,7 +99,7 @@
 
 	let showIsochrone = true;
 	let panelExpanded = false;
-
+	
 	const categoryOrder = Object.keys(CATEGORY_MAPPINGS);
 
 	$: hasData = poiData && (poiData.amenities.length > 0 || poiData.polygon);
@@ -74,6 +110,7 @@
 	let map: import("leaflet").Map | null = null;
 	let userMarker: import("leaflet").Layer | null = null;
 	let area_oi: import("leaflet").GeoJSON<any> | null = null;
+	let boundaryLayer: import("leaflet").GeoJSON<any> | null = null;
 	let poiMarkers: import("leaflet").Marker[] = [];
 
 	// Handlers for LayerPanel
@@ -349,6 +386,7 @@
 		const layers = createTileLayers();
 		setupMapInstance(layers);
 		registerMapEventHandlers();
+		await addMuensterBoundary();
 	});
 </script>
 
