@@ -398,23 +398,34 @@
    */
   function requestBrowserLocation() {
     if (!("geolocation" in navigator)) {
-      alert("Geolocation not supported.");
+      console.log("Geolocation not supported");
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
+        
+        // Check if location is within boundary before proceeding
+        if (!isPointInBoundary(latitude, longitude)) {
+          outofBoundComponent.showOutOfBoundError();
+          return;
+        }
+        
         if (map) {
           map.setView([latitude, longitude], 15);
           onLocationRequested?.({ lat: latitude, lng: longitude });
         }
       },
       (err) => {
-        console.error(err);
-        onError?.({ message: "Could not retrieve location." });
+        // Silently log the error - don't block the user
+        console.log("Location request error (code " + err.code + ")");
       },
-      { enableHighAccuracy: true },
+      { 
+        enableHighAccuracy: false,
+        timeout: 15000,
+        maximumAge: 30000
+      }
     );
   }
 
