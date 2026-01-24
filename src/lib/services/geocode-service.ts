@@ -26,3 +26,16 @@ export async function geocodeAddress(query: string): Promise<GeocodeResult[]> {
     throw error;
   }
 }
+
+// Debounce helper for live search
+export function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  
+  return function(...args: Parameters<T>) {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}

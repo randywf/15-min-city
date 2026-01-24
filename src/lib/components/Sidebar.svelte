@@ -43,7 +43,7 @@
     onClearSelection?.();
   }
 
-  import { geocodeAddress, type GeocodeResult } from "$lib/services/geocode-service";
+  import { geocodeAddress, type GeocodeResult, debounce } from "$lib/services/geocode-service";
   
   let searchQuery = "";
   let searchResults: GeocodeResult[] = [];
@@ -52,16 +52,21 @@
 
   export let onSearchSelect: ((event: { lat: number; lng: number; name: string }) => void) | undefined = undefined;
 
-  async function handleSearch() {
-    if (!searchQuery.trim()) {
+  async function performSearch(query: string) {
+    if (!query.trim()) {
       searchResults = [];
       showResults = false;
       return;
     }
     
+    // Minimum 3 characters for search
+    if (query.trim().length < 3) {
+      return;
+    }
+    
     isSearching = true;
     try {
-      searchResults = await geocodeAddress(searchQuery);
+      searchResults = await geocodeAddress(query);
       showResults = searchResults.length > 0;
     } catch (error) {
       console.error("Search failed:", error);
@@ -72,6 +77,18 @@
     }
   }
 
+  // Debounced version for live typing (500ms delay)
+  const debouncedSearch = debounce(performSearch, 500);
+
+  function handleInput() {
+    if (!searchQuery.trim()) {
+      searchResults = [];
+      showResults = false;
+      return;
+    }
+    debouncedSearch(searchQuery);
+  }
+
   function selectResult(result: GeocodeResult) {
     searchQuery = result.name;
     showResults = false;
@@ -80,9 +97,11 @@
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Enter") {
-      handleSearch();
+      performSearch(searchQuery);
+    } else if (e.key === "Escape") {
+      showResults = false;
     }
-  }  
+  }
 
 </script>
 
@@ -100,12 +119,13 @@
       placeholder="Search place or amenity"
       bind:value={searchQuery}
       on:keydown={handleKeydown}
-      on:input={() => showResults = true}
+      on:input={handleInput}
       class="w-full border border-gray-400 rounded-lg py-2 pl-3 pr-10 text-gray-700 shadow-sm"
     />
     <button
       class="absolute top-1.5 right-2 z-[10000] w-7 h-7 rounded-full bg-white flex items-center justify-center hover:bg-gray-100"
-      on:click={handleSearch}
+      class:opacity-50={isSearching}
+      on:click={() => performSearch(searchQuery)}
       disabled={isSearching}
     >
       <span class="w-4 h-4 [&>svg]:w-full [&>svg]:h-full">{@html search}</span>
