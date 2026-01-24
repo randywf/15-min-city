@@ -11,10 +11,46 @@
   export let onToggleCategory: (category: string) => void;
   
   import { ISOCHRONE_COLORS } from "$lib/constants/colors";
+  import { onMount } from "svelte";
+
+  let isBasemapExpanded = false;
+
+  onMount(() => {
+    // Watch for changes to the Leaflet layers control
+    const observer = new MutationObserver(() => {
+      const layersControl = document.querySelector('.leaflet-control-layers-expanded');
+      isBasemapExpanded = !!layersControl;
+    });
+
+    // Observe the entire document for class changes
+    observer.observe(document.body, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ['class']
+    });
+
+    // Also check on click events
+    const checkExpanded = () => {
+      const layersControl = document.querySelector('.leaflet-control-layers-expanded');
+      isBasemapExpanded = !!layersControl;
+    };
+
+    document.addEventListener('click', checkExpanded);
+    
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('click', checkExpanded);
+    };
+  });
 </script>
 
 {#if hasData}
-<div class="absolute top-16 right-20 z-[10000] w-56">
+<!-- Dynamic positioning: moves up slightly when basemap is expanded -->
+<div 
+  class="absolute top-[67px] z-[10000] w-56 transition-all duration-300 ease-in-out"
+  class:right-[150px]={isBasemapExpanded}
+  class:right-[67px]={!isBasemapExpanded}
+>
   <div class="bg-white/95 backdrop-blur border border-gray-200 shadow-lg rounded-lg overflow-hidden">
     <button
       class="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
