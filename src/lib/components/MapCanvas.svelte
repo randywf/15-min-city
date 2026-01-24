@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import locationIcon from "$lib/assets/location.svg?raw";
+  import { infoOpen } from "$lib/constants/ui";
   import Modal from "$lib/components/Modal.svelte";
   import LayerPanel from "$lib/components/LayerPanel.svelte";
   import type { TransportMode } from "$lib/types/map";
@@ -27,10 +28,16 @@
   } | null = null;
 
   // Event callbacks
-  export let onMapReady: ((event: { L: any; map: any }) => void) | undefined = undefined;
-  export let onLocationSelected: ((event: { lat: number; lng: number }) => void) | undefined = undefined;
-  export let onLocationRequested: ((event: { lat: number; lng: number }) => void) | undefined = undefined;
-  export let onError: ((event: { message: string }) => void) | undefined = undefined;
+  export let onMapReady: ((event: { L: any; map: any }) => void) | undefined =
+    undefined;
+  export let onLocationSelected:
+    | ((event: { lat: number; lng: number }) => void)
+    | undefined = undefined;
+  export let onLocationRequested:
+    | ((event: { lat: number; lng: number }) => void)
+    | undefined = undefined;
+  export let onError: ((event: { message: string }) => void) | undefined =
+    undefined;
   export let onCancelSelection: (() => void) | undefined = undefined;
 
   const CATEGORY_MAPPINGS: Record<string, string[]> = {
@@ -100,7 +107,9 @@
   }
 
   // Map amenity type to category
-  function findCategoryForAmenity(amenityType: string | undefined): string | null {
+  function findCategoryForAmenity(
+    amenityType: string | undefined,
+  ): string | null {
     if (!amenityType) return null;
     const match = Object.entries(CATEGORY_MAPPINGS).find(([, types]) =>
       types.includes(amenityType),
@@ -113,13 +122,17 @@
    */
   function isPointInPolygon(point: L.LatLng, polygon: L.LatLng[]): boolean {
     let inside = false;
-    const x = point.lng, y = point.lat;
+    const x = point.lng,
+      y = point.lat;
 
     for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-      const xi = polygon[i].lng, yi = polygon[i].lat;
-      const xj = polygon[j].lng, yj = polygon[j].lat;
+      const xi = polygon[i].lng,
+        yi = polygon[i].lat;
+      const xj = polygon[j].lng,
+        yj = polygon[j].lat;
 
-      const intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+      const intersect =
+        yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
 
       if (intersect) inside = !inside;
     }
@@ -143,7 +156,9 @@
         // Handle MultiPolygon (array of arrays)
         if (Array.isArray(latLngs)) {
           for (const polygonRing of latLngs) {
-            const rings = Array.isArray(polygonRing[0]) ? polygonRing : [polygonRing];
+            const rings = Array.isArray(polygonRing[0])
+              ? polygonRing
+              : [polygonRing];
             for (const ring of rings) {
               if (isPointInPolygon(point, ring)) {
                 isInside = true;
@@ -372,7 +387,11 @@
         if (poi.lat && poi.lon) {
           const amenityType = poi.amenity ?? poi.tags?.amenity;
           const category = findCategoryForAmenity(amenityType);
-          if (!amenityType || !category || !enabledAmenityTypes.has(amenityType))
+          if (
+            !amenityType ||
+            !category ||
+            !enabledAmenityTypes.has(amenityType)
+          )
             return;
 
           const color = CATEGORY_COLORS[category] ?? "#6b7280";
@@ -404,19 +423,19 @@
       return;
     }
 
-    isLoadingLocation = true;  // ← Show loading screen
+    isLoadingLocation = true; // ← Show loading screen
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-        isLoadingLocation = false;  // ← Hide loading screen
-        
+        isLoadingLocation = false; // ← Hide loading screen
+
         // Check if location is within boundary before proceeding
         if (!isPointInBoundary(latitude, longitude)) {
           outofBoundComponent.showOutOfBoundError();
           return;
         }
-        
+
         if (map) {
           map.setView([latitude, longitude], 15);
           onLocationRequested?.({ lat: latitude, lng: longitude });
@@ -424,14 +443,14 @@
       },
       (err) => {
         // Silently log the error - don't block the user
-        isLoadingLocation = false;  // ← Hide loading screen on error
+        isLoadingLocation = false; // ← Hide loading screen on error
         console.log("Location request error (code " + err.code + ")");
       },
-      { 
+      {
         enableHighAccuracy: false,
         timeout: 15000,
-        maximumAge: 30000
-      }
+        maximumAge: 30000,
+      },
     );
   }
 
@@ -523,23 +542,27 @@
 <GPSLoading show={isLoadingLocation} />
 
 <!-- Floating Map Controls -->
-<div class="absolute bottom-28 right-3 z-[10000]">
-  <button
-    class="w-9 h-9 rounded-full bg-white shadow-lg border flex items-center justify-center hover:bg-gray-100"
-    on:click={goToMyLocation}
-  >
-    <span class="w-6 h-6 [&>svg]:w-full [&>svg]:h-full">{@html locationIcon}</span>
-  </button>
-</div>
+{#if !$infoOpen}
+  <div class="absolute bottom-28 right-3 z-[10000]">
+    <button
+      class="w-9 h-9 rounded-full bg-white shadow-lg border flex items-center justify-center hover:bg-gray-100"
+      on:click={goToMyLocation}
+    >
+      <span class="w-6 h-6 [&>svg]:w-full [&>svg]:h-full"
+        >{@html locationIcon}</span
+      >
+    </button>
+  </div>
 
-<div class="absolute bottom-40 right-3 z-[10000]">
-  <button
-    class="w-9 h-9 rounded-full bg-white shadow-lg border flex items-center justify-center hover:bg-gray-100"
-    on:click={requestBrowserLocation}
-  >
-    📍
-  </button>
-</div>
+  <div class="absolute bottom-40 right-3 z-[10000]">
+    <button
+      class="w-9 h-9 rounded-full bg-white shadow-lg border flex items-center justify-center hover:bg-gray-100"
+      on:click={requestBrowserLocation}
+    >
+      📍
+    </button>
+  </div>
+{/if}
 
 <!-- Location Selection Modal -->
 <Modal show={selectingLocation} onClose={() => onCancelSelection?.()}>
