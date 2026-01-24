@@ -189,7 +189,7 @@
   }
 </script>
 
-<div class="p-3 bg-gradient-to-br from-gray-50 to-white rounded-lg">
+<div class="p-2 bg-gradient-to-br from-gray-50 to-white rounded-lg">
   <div class="relative">
     <canvas bind:this={canvas} class="max-w-full h-auto"></canvas>
   </div>

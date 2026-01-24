@@ -148,6 +148,14 @@
   </div>
 </div>
 
+
+  <!-- OR Divider -->
+  <div class="flex items-center gap-3 my-4">
+    <div class="flex-1 border-t border-gray-300"></div>
+    <span class="text-sm text-gray-500 font-medium">OR</span>
+    <div class="flex-1 border-t border-gray-300"></div>
+  </div>
+
   <!-- Transport Modes -->
   <div class="mt-">
     <h1 class="text-sm font-semibold text-gray-900 mb-4">Transport Mode</h1>
@@ -202,7 +210,7 @@
 
   <!-- Accessibility Score Section -->
   <div class="mt-6">
-    <h3 class="text-base font-semibold text-gray-600 mb-4">
+    <h3 class="text-base font-semibold text-gray-600 mb-0">
       Accessibility Score
     </h3>
     <Score {amenities} />
