@@ -167,6 +167,18 @@
   }
 
   /**
+   * Handle search result selection
+   */
+  async function handleSearchSelect(event: { lat: number; lng: number; name: string }) {
+    location.lat = event.lat;
+    location.lng = event.lng;
+    location.selected = false;
+    
+    await fetchAndRenderPOIs(event.lat, event.lng, mode);
+    ui.sidebarOpen = true;
+  }
+
+  /**
    * Handle error from MapCanvas
    */
   function handleError(event: { message: string }) {
@@ -273,6 +285,7 @@
     amenities={poiData?.amenities || []}
     onModeSelect={handleModeSelect}
     onSelectLocation={handleSelectLocation}
+    onSearchSelect={handleSearchSelect}
     onClearSelection={handleClear}
   />
 

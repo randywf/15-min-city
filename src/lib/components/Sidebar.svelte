@@ -42,6 +42,48 @@
   function handleClear() {
     onClearSelection?.();
   }
+
+  import { geocodeAddress, type GeocodeResult } from "$lib/services/geocode-service";
+  
+  let searchQuery = "";
+  let searchResults: GeocodeResult[] = [];
+  let isSearching = false;
+  let showResults = false;
+
+  export let onSearchSelect: ((event: { lat: number; lng: number; name: string }) => void) | undefined = undefined;
+
+  async function handleSearch() {
+    if (!searchQuery.trim()) {
+      searchResults = [];
+      showResults = false;
+      return;
+    }
+    
+    isSearching = true;
+    try {
+      searchResults = await geocodeAddress(searchQuery);
+      showResults = searchResults.length > 0;
+    } catch (error) {
+      console.error("Search failed:", error);
+      searchResults = [];
+      showResults = false;
+    } finally {
+      isSearching = false;
+    }
+  }
+
+  function selectResult(result: GeocodeResult) {
+    searchQuery = result.name;
+    showResults = false;
+    onSearchSelect?.({ lat: result.lat, lng: result.lng, name: result.name });
+  }
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
+  }  
+
 </script>
 
 <div
@@ -50,25 +92,41 @@
        overflow-y-auto overflow-x-hidden"
   class:translate-x-[-100%]={!open}
 >
-  <!-- Search Field -->
-  <div class="mt-0">
-    <div class="relative mb-4">
-      <input
-        type="text"
-        placeholder="Search place or amenity"
-        class="w-full border border-gray-400 rounded-lg py-2 pl-3 pr-10 text-gray-700 shadow-sm"
-      />
-      <div class="absolute top-1.5 right-2 z-[10000]">
-        <button
-          class="w-7 h-7 rounded-full bg-white flex items-center justify-center hover:bg-gray-100"
-        >
-          <span class="w-4 h-4 [&>svg]:w-full [&>svg]:h-full"
-            >{@html search}</span
+<!-- Search Field -->
+<div class="mt-0">
+  <div class="relative mb-4">
+    <input
+      type="text"
+      placeholder="Search place or amenity"
+      bind:value={searchQuery}
+      on:keydown={handleKeydown}
+      on:input={() => showResults = true}
+      class="w-full border border-gray-400 rounded-lg py-2 pl-3 pr-10 text-gray-700 shadow-sm"
+    />
+    <button
+      class="absolute top-1.5 right-2 z-[10000] w-7 h-7 rounded-full bg-white flex items-center justify-center hover:bg-gray-100"
+      on:click={handleSearch}
+      disabled={isSearching}
+    >
+      <span class="w-4 h-4 [&>svg]:w-full [&>svg]:h-full">{@html search}</span>
+    </button>
+    
+    <!-- Search Results Dropdown -->
+    {#if showResults && searchResults.length > 0}
+      <div class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-[10001] max-h-60 overflow-y-auto">
+        {#each searchResults as result}
+          <button
+            class="w-full text-left px-3 py-2 hover:bg-gray-100 border-b last:border-b-0 text-sm"
+            on:click={() => selectResult(result)}
           >
-        </button>
+            <div class="font-medium text-gray-700">{result.name.split(',')[0]}</div>
+            <div class="text-xs text-gray-500">{result.lat.toFixed(4)}, {result.lng.toFixed(4)}</div>
+          </button>
+        {/each}
       </div>
-    </div>
+    {/if}
   </div>
+</div>
 
   <!-- Transport Modes -->
   <div class="mt-">
