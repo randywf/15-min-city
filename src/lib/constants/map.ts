@@ -1,5 +1,11 @@
 import walk from "$lib/assets/walk.svg?raw";
 import bicycle from "$lib/assets/bicycle.svg?raw";
+import type { FeatureCollection } from "geojson";
+import { booleanPointInPolygon } from "@turf/boolean-point-in-polygon";
+
+export function isPointInMuenster(lat: number, lng: number, boundary: FeatureCollection): boolean {
+  return booleanPointInPolygon([lng, lat], boundary);
+}
 
 export const MARKER_STYLES = {
 	radius: 8,

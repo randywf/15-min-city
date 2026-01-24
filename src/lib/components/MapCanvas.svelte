@@ -406,10 +406,27 @@
 
         map!.setView([lat, lng], 15);
 
+<<<<<<< HEAD
         // Remove old marker
         if (userMarker) {
           map!.removeLayer(userMarker);
         }
+=======
+	export function checkBoundary(lat: number, lng: number): boolean {
+		return isPointInBoundary(lat, lng);
+	}
+
+	export function showBoundaryError() {
+		outofBoundComponent.showOutOfBoundError();
+	}
+
+	/**
+	 * Create a user marker
+	 */
+	function createUserMarker(lat: number, lng: number): import("leaflet").Layer {
+		return L!.circleMarker([lat, lng], MARKER_STYLES).addTo(map!);
+	}
+>>>>>>> d75e74f (Search functions with Muenster Boundary Check Added with OutofBoundary Error)
 
         // Create new marker
         userMarker = L!.circleMarker([lat, lng], MARKER_STYLES).addTo(map!);

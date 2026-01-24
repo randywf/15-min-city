@@ -18,6 +18,10 @@
     POIState,
   } from "$lib/types/map";
 
+  let mapCanvasComponent: MapCanvas | undefined;
+
+
+
   // UI State
   let ui: UIState = {
     sidebarOpen: true,
@@ -116,7 +120,7 @@
 
     location.lat = lat;
     location.lng = lng;
-    location.selected = false; // Will be set to true after successful fetch
+    location.selected = false;
 
     ui.selectingLocation = false;
 
@@ -166,15 +170,30 @@
     ui.selectingLocation = false;
   }
 
-  /**
+    /**
    * Handle search result selection
    */
   async function handleSearchSelect(event: { lat: number; lng: number; name: string }) {
-    location.lat = event.lat;
-    location.lng = event.lng;
+    const { lat, lng, name } = event;
+    
+    // Check map component
+    if (!mapCanvasComponent) {
+      console.warn("Map component not ready yet");
+      return;
+    }
+    
+    // Check boundary before processing
+    if (!mapCanvasComponent.checkBoundary(lat, lng)) {
+      mapCanvasComponent.showBoundaryError();
+      return; // Stop here - don't update location or fetch POIs
+    }
+    
+    // If within boundary, proceed normally
+    location.lat = lat;
+    location.lng = lng;
     location.selected = false;
     
-    await fetchAndRenderPOIs(event.lat, event.lng, mode);
+    await fetchAndRenderPOIs(lat, lng, mode);
     ui.sidebarOpen = true;
   }
 
@@ -291,6 +310,7 @@
 
   <!-- Map Canvas -->
   <MapCanvas
+    bind:this={mapCanvasComponent}
     {mode}
     {location}
     {poiData}

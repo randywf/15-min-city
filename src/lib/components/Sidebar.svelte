@@ -116,7 +116,7 @@
   <div class="relative mb-4">
     <input
       type="text"
-      placeholder="Search place or amenity"
+      placeholder="Search Place or Amenity"
       bind:value={searchQuery}
       on:keydown={handleKeydown}
       on:input={handleInput}
