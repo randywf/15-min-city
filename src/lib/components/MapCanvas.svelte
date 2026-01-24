@@ -20,12 +20,50 @@
     const point = L!.latLng(lat, lng);
     let isInside = false;
 
+<<<<<<< HEAD
     boundaryLayer.eachLayer((layer: any) => {
       // Check if the layer has a contains method (for polygons)
       if (layer.getBounds && layer.getBounds().contains(point)) {
         // More accurate check: use turf or leaflet-pip, or manual ray casting
         // Simple approach: convert to GeoJSON and check
         const latLngs = layer.getLatLngs();
+=======
+	// Add the münster boundary layer
+	async function addMuensterBoundary() {
+	if (!L || !map) return;
+	if (boundaryLayer) map.removeLayer(boundaryLayer);
+	
+	try {
+		const response = await fetch("/data/muenster_boundary.geojson");
+		let muensterBoundary = await response.json();
+		
+		// Remove CRS to avoid parsing issues
+		if (muensterBoundary.crs) {
+		delete muensterBoundary.crs;
+		}
+		
+		console.log("Boundary features:", muensterBoundary.features?.length);
+		
+		boundaryLayer = L.geoJSON(muensterBoundary, {
+		style: (feature) => ({
+			color: "#0AC7A4",
+			weight: 2,
+			fill: false,
+			fillOpacity: 0,
+		}),
+		interactive: false,
+		}).addTo(map!);
+		
+		// Fit map to boundary
+		const bounds = boundaryLayer.getBounds();
+		map!.fitBounds(bounds);
+		
+		console.log("Münster boundary loaded");
+	} catch (e) {
+		console.error("Failed to load Münster boundary:", e);
+	}
+	}
+>>>>>>> f359674 (Base Map Changed to Dark)
 
         // Handle MultiPolygon (array of arrays)
         if (Array.isArray(latLngs)) {
@@ -241,6 +279,7 @@
     console.log("[leaflet] typeof heatLayer =", typeof (L as any).heatLayer);
   }
 
+<<<<<<< HEAD
   /**
    * Create tile layers
    */
@@ -249,6 +288,32 @@
       "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
       { maxZoom: 19, attribution: "© OpenStreetMap contributors" },
     );
+=======
+	/**
+	 * Create tile layers
+	 */
+	function createTileLayers() {
+		const stadiaDark = L!.tileLayer(
+		"https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.{ext}",
+		{
+			minZoom: 0,
+			maxZoom: 20,
+			attribution:
+			'&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+			ext: "png",
+		},
+		);
+
+		const dark = L!.tileLayer(
+			"https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+			{ maxZoom: 19, attribution: "© OpenStreetMap contributors, © CartoDB" },
+		);
+
+		const osm = L!.tileLayer(
+			"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+			{ maxZoom: 19, attribution: "© OpenStreetMap contributors" },
+		);
+>>>>>>> f359674 (Base Map Changed to Dark)
 
     const satellite = L!.tileLayer(
       "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -266,6 +331,7 @@
       },
     );
 
+<<<<<<< HEAD
     const dark = L!.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
       {
@@ -286,6 +352,30 @@
       zoom: 12,
       layers: [layers.osm],
     });
+=======
+		return { osm, satellite, topo, dark, stadiaDark};
+	}
+
+	/**
+	 * Setup the map instance
+	 */
+	function setupMapInstance(layers: any) {
+		map = L!.map(mapDiv, {
+			center: [51.96, 7.62],
+			zoom: 12,
+			layers: [layers.stadiaDark],
+		});
+
+		const baseLayers = {
+			"Stadia Dark": layers.stadiaDark,
+			Dark: layers.dark,
+			OpenStreetMap: layers.osm,
+			Satellite: layers.satellite,
+			Topographic: layers.topo,
+		};
+		L!.control.layers(baseLayers).addTo(map);
+		map.zoomControl.setPosition("bottomright");
+>>>>>>> f359674 (Base Map Changed to Dark)
 
     const baseLayers = {
       OpenStreetMap: layers.osm,
@@ -344,11 +434,25 @@
     poiMarkers.forEach((marker) => map!.removeLayer(marker));
     poiMarkers = [];
 
+<<<<<<< HEAD
     if (area_oi) {
       map!.removeLayer(area_oi);
       area_oi = null;
     }
   }
+=======
+		// Render polygon
+		if (data.polygon && showIsochrone) {
+			area_oi = L.geoJSON(data.polygon, {
+				style: {
+					color: ISOCHRONE_COLORS.stroke, 
+					fillColor: ISOCHRONE_COLORS.fill,
+					fillOpacity: 0.2,                     
+					weight: 1                           
+				}
+			}).addTo(map);
+		}
+>>>>>>> f359674 (Base Map Changed to Dark)
 
   /**
    * Render POI data (polygon and markers)
