@@ -8,8 +8,10 @@
   import { toSentenceCase } from "$lib/utils/map";
   import { CATEGORY_COLORS, ISOCHRONE_COLORS } from "$lib/constants/colors";
   import OutofBound from "$lib/components/OutofBound.svelte";
+  import GPSLoading from "$lib/components/GPSLoading.svelte";
 
   let outofBoundComponent: OutofBound;
+  let isLoadingLocation = false;
 
   // Props
   export let mode: TransportMode;
@@ -402,9 +404,12 @@
       return;
     }
 
+    isLoadingLocation = true;  // ← Show loading screen
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
+        isLoadingLocation = false;  // ← Hide loading screen
         
         // Check if location is within boundary before proceeding
         if (!isPointInBoundary(latitude, longitude)) {
@@ -419,6 +424,7 @@
       },
       (err) => {
         // Silently log the error - don't block the user
+        isLoadingLocation = false;  // ← Hide loading screen on error
         console.log("Location request error (code " + err.code + ")");
       },
       { 
@@ -510,7 +516,11 @@
   onToggleCategory={toggleCategory}
 />
 
+<!-- Out of Bound Error -->
 <OutofBound bind:this={outofBoundComponent} />
+
+<!-- GPS Loading Screen -->
+<GPSLoading show={isLoadingLocation} />
 
 <!-- Floating Map Controls -->
 <div class="absolute bottom-28 right-3 z-[10000]">
