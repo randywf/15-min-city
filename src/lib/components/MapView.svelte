@@ -284,8 +284,8 @@
 
   // image paths (recommended: put images into /static/images/...)
   import heroImg from "$lib/assets/location_description.png";
-  const heatmapImg = "/images/heatmap-example.png";
-  const poiImg = "/images/poi-example.png";
+  import poiImg from "$lib/assets/Isochrones.png";
+  import heatmapImg from "$lib/assets/Heatmap.png";
 </script>
 
 <div class="relative h-screen">
@@ -304,9 +304,6 @@
     >
       ☰
     </button>
-
-    <!-- App Title -->
-    <div class="ml-4 text-xl font-semibold text-gray-700">15-Minute City</div>
 
     <!-- App Title -->
     <div class="ml-4 text-xl font-semibold text-gray-700">15-Minute City</div>
@@ -373,10 +370,14 @@
             <section class="space-y-3">
               <h3 class="text-base font-semibold text-gray-900">Overview</h3>
               <p class="text-sm leading-6 text-gray-700">
-                This application visualizes urban accessibility through the
-                15-minute city concept. Select any location in Münster and see
-                which amenities are reachable within a chosen travel time and
-                transport mode.
+                This application demonstrates the 15-minute city concept by
+                visualizing urban accessibility in Münster. Click anywhere on
+                the map to choose a starting location. Then select a transport
+                mode and travel time to explore which everyday amenities (such
+                as shops, schools, or cafés) can be reached within that limit.
+                The map updates interactively to help you understand how
+                accessible different parts of the city are under various
+                mobility scenarios.
               </p>
 
               <img
@@ -405,8 +406,9 @@
                     Isochrone Map
                   </h4>
                   <p class="mt-1 text-sm text-gray-700 leading-6">
-                    Generates an area polygon showing what you can reach within
-                    the chosen time.
+                    Displays the reachable area within the selected time from
+                    your starting point.
+
                   </p>
                   <img
                     src={poiImg}
@@ -421,8 +423,10 @@
                     Amenity Heatmap
                   </h4>
                   <p class="mt-1 text-sm text-gray-700 leading-6">
-                    Highlights clusters of amenities to quickly compare
-                    different areas.
+
+                    Shows where amenities are concentrated, making it easy to
+                    compare different areas at a glance.
+
                   </p>
                   <img
                     src={heatmapImg}
