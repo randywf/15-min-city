@@ -1,6 +1,10 @@
 <script lang="ts">
   import type { HeatmapPoi } from "$lib/services/heatmap-service";
-  import { AMENITIES, AMENITY_GRADIENTS, type Amenity } from "$lib/constants/amenities";
+  import {
+    AMENITIES,
+    AMENITY_GRADIENTS,
+    type Amenity,
+  } from "$lib/constants/amenities";
 
   export let L: any = null; // Leaflet instance with heatLayer
   export let map: any = null; // Leaflet map
@@ -17,7 +21,8 @@
   let selected: Amenity[] = [];
 
   $: options = AMENITIES.filter(
-    (a) => !selected.includes(a) && a.toLowerCase().includes(search.toLowerCase()),
+    (a) =>
+      !selected.includes(a) && a.toLowerCase().includes(search.toLowerCase()),
   );
 
   let layersByAmenity: Partial<Record<Amenity, any>> = {};
@@ -26,8 +31,16 @@
     if (!L || !map) return null;
 
     const pts = heatmapPois
-      .filter((p) => p.amenity === amenity && Number.isFinite(p.lat) && Number.isFinite(p.lon))
-      .map((p) => [p.lat, p.lon, (p.weight ?? p.count ?? 1)] as [number, number, number]);
+      .filter(
+        (p) =>
+          p.amenity === amenity &&
+          Number.isFinite(p.lat) &&
+          Number.isFinite(p.lon),
+      )
+      .map(
+        (p) =>
+          [p.lat, p.lon, p.weight ?? p.count ?? 1] as [number, number, number],
+      );
 
     if (!pts.length) return null;
 
@@ -125,7 +138,10 @@
     }}
   >
     <div class="flex items-center gap-2">
-      <span class="inline-block transition-transform" style="transform: rotate({open ? 90 : 0}deg);">
+      <span
+        class="inline-block transition-transform"
+        style="transform: rotate({open ? 90 : 0}deg);"
+      >
         ▶
       </span>
       <span class="text-sm font-semibold text-gray-700">Heatmap</span>
@@ -135,7 +151,8 @@
       <input
         type="checkbox"
         checked={heatmapMode}
-        on:change={(e) => setMode((e.currentTarget as HTMLInputElement).checked)}
+        on:change={(e) =>
+          setMode((e.currentTarget as HTMLInputElement).checked)}
         disabled={loading}
       />
       <span>{heatmapMode ? "On" : "Off"}</span>
@@ -149,17 +166,22 @@
       <!-- chips + searchable dropdown -->
       <div class="mt-2 relative">
         <div
-  class="w-full max-w-full border rounded-lg bg-white px-2 py-2 flex flex-wrap gap-2 items-start cursor-text
+          class="w-full max-w-full border rounded-lg bg-white px-2 py-2 flex flex-wrap gap-2 items-start cursor-text
          max-h-24 overflow-y-auto overflow-x-hidden"
-  on:click={() => (pickerOpen = true)}
->
+          on:click={() => (pickerOpen = true)}
+        >
           {#each selected as a (a)}
-            <span class="flex items-center gap-2 px-2 py-1 text-xs rounded bg-gray-100 border max-w-full min-w-0">
-            <span class="capitalize truncate max-w-[120px]">
+            <span
+              class="flex items-center gap-2 px-2 py-1 text-xs rounded bg-gray-100 border max-w-full min-w-0"
+            >
+              <span class="capitalize truncate max-w-[120px]">
                 {a.replaceAll("_", " ")}
-            </span>
-              <span class="w-2 h-2 rounded-full"
-                style="background:{AMENITY_GRADIENTS[a][0.6]}; border:1px solid #ddd;"
+              </span>
+              <span
+                class="w-2 h-2 rounded-full"
+                style="background:{AMENITY_GRADIENTS[
+                  a
+                ][0.6]}; border:1px solid #ddd;"
               />
               <button
                 type="button"
@@ -198,7 +220,9 @@
         </div>
 
         {#if pickerOpen}
-          <div class="absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg z-[3000]">
+          <div
+            class="absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg z-[3000]"
+          >
             <div class="max-h-56 overflow-auto">
               {#if options.length === 0}
                 <div class="p-3 text-sm text-gray-500">No matches</div>
@@ -210,8 +234,11 @@
                     on:click={() => addAmenity(a)}
                   >
                     <span class="capitalize">{a.replaceAll("_", " ")}</span>
-                    <span class="ml-auto w-3 h-3 rounded-full"
-                      style="background:{AMENITY_GRADIENTS[a][0.6]}; border:1px solid #ddd;"
+                    <span
+                      class="ml-auto w-3 h-3 rounded-full"
+                      style="background:{AMENITY_GRADIENTS[
+                        a
+                      ][0.6]}; border:1px solid #ddd;"
                     />
                   </button>
                 {/each}

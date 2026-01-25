@@ -1,7 +1,11 @@
 import walk from "$lib/assets/walk.svg?raw";
 import bicycle from "$lib/assets/bicycle.svg?raw";
-import car from "$lib/assets/car.svg?raw";
-import bus from "$lib/assets/bus.svg?raw";
+import type { FeatureCollection } from "geojson";
+import { booleanPointInPolygon } from "@turf/boolean-point-in-polygon";
+
+export function isPointInMuenster(lat: number, lng: number, boundary: FeatureCollection): boolean {
+  return booleanPointInPolygon([lng, lat], boundary);
+}
 
 export const MARKER_STYLES = {
 	radius: 8,
@@ -20,6 +24,4 @@ export const ICON_CONFIG = {
 export const TRANSPORT_MODES = [
 	{ name: "walk", value: "walk", icon: walk },
 	{ name: "bike", value: "bike", icon: bicycle },
-	{ name: "car", value: "car", icon: car },
-	{ name: "Public Transport", value: "public", icon: bus },
 ];

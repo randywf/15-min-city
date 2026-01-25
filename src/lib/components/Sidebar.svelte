@@ -22,6 +22,9 @@
     error: string | null;
   };
 
+  // Score calculation
+  export let amenities: any[] = [];
+
   // Event callbacks (Svelte 5 style)
   export let onModeSelect: ((event: { mode: string }) => void) | undefined =
     undefined;
@@ -39,6 +42,67 @@
   function handleClear() {
     onClearSelection?.();
   }
+
+  import { geocodeAddress, type GeocodeResult, debounce } from "$lib/services/geocode-service";
+  
+  let searchQuery = "";
+  let searchResults: GeocodeResult[] = [];
+  let isSearching = false;
+  let showResults = false;
+
+  export let onSearchSelect: ((event: { lat: number; lng: number; name: string }) => void) | undefined = undefined;
+
+  async function performSearch(query: string) {
+    if (!query.trim()) {
+      searchResults = [];
+      showResults = false;
+      return;
+    }
+    
+    // Minimum 3 characters for search
+    if (query.trim().length < 3) {
+      return;
+    }
+    
+    isSearching = true;
+    try {
+      searchResults = await geocodeAddress(query);
+      showResults = searchResults.length > 0;
+    } catch (error) {
+      console.error("Search failed:", error);
+      searchResults = [];
+      showResults = false;
+    } finally {
+      isSearching = false;
+    }
+  }
+
+  // Debounced version for live typing (500ms delay)
+  const debouncedSearch = debounce(performSearch, 500);
+
+  function handleInput() {
+    if (!searchQuery.trim()) {
+      searchResults = [];
+      showResults = false;
+      return;
+    }
+    debouncedSearch(searchQuery);
+  }
+
+  function selectResult(result: GeocodeResult) {
+    searchQuery = result.name;
+    showResults = false;
+    onSearchSelect?.({ lat: result.lat, lng: result.lng, name: result.name });
+  }
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === "Enter") {
+      performSearch(searchQuery);
+    } else if (e.key === "Escape") {
+      showResults = false;
+    }
+  }
+
 </script>
 
 <div
@@ -47,46 +111,74 @@
        overflow-y-auto overflow-x-hidden"
   class:translate-x-[-100%]={!open}
 >
-  <!-- Search Field -->
-  <div class="mt-0">
-    <div class="relative mb-4">
-      <input
-        type="text"
-        placeholder="Search place or amenity"
-        class="w-full border border-gray-400 rounded-lg py-2 pl-3 pr-10 text-gray-700 shadow-sm"
-      />
-      <div class="absolute top-1.5 right-2 z-[10000]">
-        <button
-          class="w-7 h-7 rounded-full bg-white flex items-center justify-center hover:bg-gray-100"
-        >
-          <span class="w-4 h-4 [&>svg]:w-full [&>svg]:h-full"
-            >{@html search}</span
+<!-- Search Field -->
+<div class="mt-0">
+  <div class="relative mb-4">
+    <input
+      type="text"
+      placeholder="Search Place or Amenity"
+      bind:value={searchQuery}
+      on:keydown={handleKeydown}
+      on:input={handleInput}
+      class="w-full border border-gray-400 rounded-lg py-2 pl-3 pr-10 text-gray-700 shadow-sm"
+    />
+    <button
+      class="absolute top-1.5 right-2 z-[10000] w-7 h-7 rounded-full bg-white flex items-center justify-center hover:bg-gray-100"
+      class:opacity-50={isSearching}
+      on:click={() => performSearch(searchQuery)}
+      disabled={isSearching}
+    >
+      <span class="w-4 h-4 [&>svg]:w-full [&>svg]:h-full">{@html search}</span>
+    </button>
+    
+    <!-- Search Results Dropdown -->
+    {#if showResults && searchResults.length > 0}
+      <div class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-[10001] max-h-60 overflow-y-auto">
+        {#each searchResults as result}
+          <button
+            class="w-full text-left px-3 py-2 hover:bg-gray-100 border-b last:border-b-0 text-sm"
+            on:click={() => selectResult(result)}
           >
-        </button>
+            <div class="font-medium text-gray-700">{result.name.split(',')[0]}</div>
+            <div class="text-xs text-gray-500">{result.lat.toFixed(4)}, {result.lng.toFixed(4)}</div>
+          </button>
+        {/each}
       </div>
-    </div>
+    {/if}
+  </div>
+</div>
+
+
+  <!-- OR Divider -->
+  <div class="flex items-center gap-3 my-4">
+    <div class="flex-1 border-t border-gray-300"></div>
+    <span class="text-sm text-gray-500 font-medium">OR</span>
+    <div class="flex-1 border-t border-gray-300"></div>
   </div>
 
   <!-- Transport Modes -->
   <div class="mt-">
     <h1 class="text-sm font-semibold text-gray-900 mb-4">Transport Mode</h1>
-    <div class="grid grid-cols-4 gap-2">
+    <div class="flex gap-3 w-full">
       {#each TRANSPORT_MODES as t}
         <button
-          class="flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all
-               hover:border-blue-400"
-          class:bg-blue-500={mode === t.value}
-          class:text-white={mode === t.value}
+          class="flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all
+               hover:border-blue-400 flex-1"
+          class:bg-blue-100={mode === t.value}
           class:border-blue-500={mode === t.value}
           class:bg-gray-50={mode !== t.value}
-          class:text-gray-600={mode !== t.value}
           class:border-gray-200={mode !== t.value}
           on:click={() => handleModeClick(t.value)}
         >
-          <span class="w-6 h-6 mb-1 [&>svg]:w-full [&>svg]:h-full"
+          <span class="w-7 h-7 mb-2 [&>svg]:w-full [&>svg]:h-full [&_path]:stroke-current [&_path]:fill-current"
+            class:text-blue-500={mode === t.value}
+            class:text-gray-600={mode !== t.value}
             >{@html t.icon}</span
           >
-          <span class="text-xs font-medium capitalize">{t.value}</span>
+          <span class="text-xs font-medium capitalize transition-colors"
+            class:text-blue-500={mode === t.value}
+            class:text-gray-600={mode !== t.value}
+          >{t.value}</span>
         </button>
       {/each}
     </div>
@@ -118,10 +210,10 @@
 
   <!-- Accessibility Score Section -->
   <div class="mt-6">
-    <h3 class="text-base font-semibold text-gray-600 mb-4">
+    <h3 class="text-base font-semibold text-gray-600 mb-0">
       Accessibility Score
     </h3>
-    <Score />
+    <Score {amenities} />
   </div>
 
   <Heatmap

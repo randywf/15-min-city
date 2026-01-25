@@ -1,14 +1,71 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Chart from "chart.js/auto";
+  import { CATEGORY_COLORS_WITH_ALPHA as CATEGORY_COLORS } from "$lib/constants/colors";
+
+  // Props - accept amenities from parent
+  export let amenities: any[] = [];
 
   let canvas: HTMLCanvasElement;
   let chart: Chart<"radar">;
 
-  const labels = ["Workplaces", "Education", "Shopping", "Restaurants", "Sports"];
+  const labels = ["Mobility & Parking", "Healthcare", "Education", "Entertainment", "Food & Beverage", "Other"];
 
-  // slider values (1..10)
-  let values: number[] = [2.7, 3.8, 4.6, 2.2, 3.2];
+  // Define category mappings
+  const CATEGORY_MAPPINGS: Record<string, string[]> = {
+    "Mobility & Parking": ["bicycle_parking", "parking", "fuel"],
+    "Healthcare": ["clinic", "hospital", "pharmacy"],
+    "Education": ["school", "library"],
+    "Other": ["place_of_worship:christian","place_of_worship:islamic","place_of_worship:buddhist","place_of_worship:hindu","place_of_worship:jewish","toilets"],
+    "Entertainment": ["theatre", "cinema"],
+    "Food & Beverage": ["restaurant", "bar", "bbq", "biergarten", "cafe","fast_food", "food_court", "ice_cream", "pub"]
+  };
+
+  // Calculate scores from amenities
+  function calculateScores(amenitiesList: any[]): number[] {
+    if (!amenitiesList || amenitiesList.length === 0) {
+      return [0, 0, 0, 0, 0, 0];
+    }
+
+    const totalPois = amenitiesList.length;
+
+    // Count POIs per category
+    const counts: Record<string, number> = {
+      "Mobility & Parking": 0,
+      "Healthcare": 0,
+      "Education": 0,
+      "Entertainment": 0,
+      "Food & Beverage": 0,
+      "Other": 0
+    };
+
+    amenitiesList.forEach((poi) => {
+      const amenityType = poi.amenity || poi.tags?.amenity;
+      if (!amenityType) return;
+
+      // Check which category this amenity belongs to
+      for (const [category, types] of Object.entries(CATEGORY_MAPPINGS)) {
+        if (types.includes(amenityType)) {
+          counts[category]++;
+        }
+      }
+    });
+
+    // Convert counts to scores (0-10 scale)
+    // Formula: (POIs in category / total POIs) * 10
+    return labels.map(label => {
+      const count = counts[label];
+      
+      if (count === 0) return 0;
+      
+      // Proportion-based scoring: (category POIs / total POIs) * 10
+      const score = (count / totalPois) * 10;
+      return Math.min(10, Number(score.toFixed(1)));
+    });
+  }
+
+  // Reactive values based on amenities
+  $: values = calculateScores(amenities);
 
   onMount(() => {
     chart = new Chart(canvas, {
@@ -17,56 +74,149 @@
         labels,
         datasets: [
           {
-            label: "Score",
+            label: "Accessibility Score",
             data: values,
             fill: true,
-            backgroundColor: "rgba(231,74,59,0.3)",
-            borderColor: "rgb(231,74,59)",
-            pointBackgroundColor: "rgb(231,74,59)"
+            backgroundColor: "rgba(59, 130, 246, 0.15)",
+            borderColor: "rgba(59, 130, 246, 0.8)",
+            pointBackgroundColor: labels.map(label => CATEGORY_COLORS[label].hex),
+            pointBorderColor: "#fff",
+            pointHoverBackgroundColor: "#fff",
+            pointHoverBorderColor: labels.map(label => CATEGORY_COLORS[label].hex),
+            pointBorderWidth: 2,
+            pointHoverRadius: 6,
+            pointRadius: 5,
+            borderWidth: 3
           }
         ]
       },
       options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        layout: {
+          padding: {
+            top: 10,
+            bottom: 5,
+            left: 10,
+            right: 10
+          }
+        },
         scales: {
           r: {
             min: 0,
             max: 10,
-            ticks: { display: true }
+            beginAtZero: true,
+            ticks: {
+              stepSize: 2,
+              font: {
+                size: 11,
+                family: "'Inter', 'Arial', sans-serif",
+                weight: '500'
+              },
+              color: '#9ca3af',
+              backdropColor: 'rgba(255, 255, 255, 0.95)',
+              backdropPadding: 3,
+              showLabelBackdrop: true
+            },
+            pointLabels: {
+              font: {
+                size: 12,
+                family: "'Inter', 'Arial', sans-serif",
+                weight: '300'
+              },
+              color: '#374151',
+              padding: 8,
+              callback: function(label) {
+                // Wrap long labels
+                if (label.length > 15) {
+                  const words = label.split(' ');
+                  if (words.length > 2) {
+                    return [words.slice(0, 2).join(' '), words.slice(2).join(' ')];
+                  }
+                }
+                return label;
+              }
+            },
+            grid: {
+              color: 'rgba(229, 231, 235, 0.8)',
+              lineWidth: 1.5,
+              circular: true
+            },
+            angleLines: {
+              color: 'rgba(229, 231, 235, 0.8)',
+              lineWidth: 1.5
+            }
           }
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            enabled: true,
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            titleFont: {
+              size: 13,
+              weight: 'bold'
+            },
+            bodyFont: {
+              size: 12
+            },
+            padding: 10,
+            cornerRadius: 6,
+            displayColors: true,
+            callbacks: {
+              label: function(context) {
+                return `Score: ${context.parsed.r}/10`;
+              }
+            }
+          }
+        },
+        interaction: {
+          mode: 'nearest',
+          intersect: false
         }
       }
     });
   });
 
-  // whenever "values" changes, update the chart
+  // Update chart when values change
   $: if (chart) {
     chart.data.datasets[0].data = values;
+    chart.data.datasets[0].pointBackgroundColor = labels.map(label => CATEGORY_COLORS[label].hex);
+    chart.data.datasets[0].pointHoverBorderColor = labels.map(label => CATEGORY_COLORS[label].hex);
     chart.update();
-  }
-
-  function setValue(i: number, v: number) {
-    // create a new array so Svelte sees a change
-    values = values.map((x, idx) => (idx === i ? v : x));
   }
 </script>
 
-<div class="p-4">
-  <canvas bind:this={canvas} width="100" height="100"></canvas>
+<div class="p-2 bg-gradient-to-br from-gray-50 to-white rounded-lg">
+  <div class="relative">
+    <canvas bind:this={canvas} class="max-w-full h-auto"></canvas>
+  </div>
 
-  <div class="mt-4 space-y-3">
+  <div class="mt-3 space-y-2 px-1">
+    <div class="text-xs text-gray-600 text-center pb-2 border-b border-gray-200">
+      Total number of POIs: <span class="font-semibold">{amenities.length}</span>
+    </div>
+    
     {#each labels as label, i}
-      <div class="flex items-center gap-3">
-        <div class="w-32 text-sm">{label}</div>
-        <input
-          type="range"
-          min="1"
-          max="10"
-          step="0.1"
-          value={values[i]}
-          on:input={(e) => setValue(i, +(e.currentTarget as HTMLInputElement).value)}
-          class="flex-1"
-        />
-        <div class="w-12 text-right tabular-nums">{values[i].toFixed(1)}</div>
+      <div class="flex items-center gap-2 py-1 px-2 rounded-md hover:bg-gray-50 transition-colors">
+        <div class="flex items-center gap-1.5 min-w-[140px]">
+          <div 
+            class="w-3 h-3 rounded-full flex-shrink-0 shadow-sm"
+            style="background-color: {CATEGORY_COLORS[label].hex};"
+          ></div>
+          <span class="text-xs font-medium text-gray-700">{label}</span>
+        </div>
+        <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden shadow-inner">
+          <div 
+            class="h-full transition-all duration-500 ease-out rounded-full"
+            style="width: {(values[i] / 10) * 100}%; background: linear-gradient(90deg, {CATEGORY_COLORS[label].hex}, {CATEGORY_COLORS[label].border});"
+          ></div>
+        </div>
+        <div class="w-10 text-right tabular-nums text-xs font-semibold" style="color: {CATEGORY_COLORS[label].hex};">
+          {values[i].toFixed(1)}
+        </div>
       </div>
     {/each}
   </div>

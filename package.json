@@ -23,9 +23,11 @@
 		"vite": "^7.1.10"
 	},
 	"dependencies": {
+		"@turf/boolean-point-in-polygon": "^7.3.2",
 		"chart.js": "^4.5.1",
 		"chartjs-plugin-dragdata": "^2.3.1",
 		"leaflet": "^1.9.4",
+		"leaflet-providers": "^3.0.0",
 		"leaflet.heat": "^0.2.0",
 		"xmlhttprequest": "^1.8.0"
 	}

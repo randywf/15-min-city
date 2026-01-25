@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import Sidebar from "$lib/components/Sidebar.svelte";
   import MapCanvas from "$lib/components/MapCanvas.svelte";
+  import { infoOpen } from "$lib/constants/ui";
   import Backdrop from "$lib/components/Backdrop.svelte";
   import ErrorNotification from "$lib/components/ErrorNotification.svelte";
   import { getAmenities, getPointToPoi } from "$lib/services/isochrone-service";
@@ -17,6 +18,8 @@
     MapState,
     POIState,
   } from "$lib/types/map";
+
+  let mapCanvasComponent: MapCanvas | undefined;
 
   // UI State
   let ui: UIState = {
@@ -116,7 +119,7 @@
 
     location.lat = lat;
     location.lng = lng;
-    location.selected = false; // Will be set to true after successful fetch
+    location.selected = false;
 
     ui.selectingLocation = false;
 
@@ -164,6 +167,37 @@
    */
   function handleCancelSelection() {
     ui.selectingLocation = false;
+  }
+
+  /**
+   * Handle search result selection
+   */
+  async function handleSearchSelect(event: {
+    lat: number;
+    lng: number;
+    name: string;
+  }) {
+    const { lat, lng, name } = event;
+
+    // Check map component
+    if (!mapCanvasComponent) {
+      console.warn("Map component not ready yet");
+      return;
+    }
+
+    // Check boundary before processing
+    if (!mapCanvasComponent.checkBoundary(lat, lng)) {
+      mapCanvasComponent.showBoundaryError();
+      return; // Stop here - don't update location or fetch POIs
+    }
+
+    // If within boundary, proceed normally
+    location.lat = lat;
+    location.lng = lng;
+    location.selected = false;
+
+    await fetchAndRenderPOIs(lat, lng, mode);
+    ui.sidebarOpen = true;
   }
 
   /**
@@ -237,6 +271,21 @@
     }
     ui.isIsochroneLoading = false;
   }
+
+  /**
+   * Information window
+   */
+  let open = false;
+
+  const close = () => (open = false);
+  const onKeydown = (e: KeyboardEvent) => {
+    if (e.key === "Escape") close();
+  };
+
+  // image paths (recommended: put images into /static/images/...)
+  import heroImg from "$lib/assets/location_description.png";
+  import poiImg from "$lib/assets/Isochrones.png";
+  import heatmapImg from "$lib/assets/Heatmap.png";
 </script>
 
 <div class="relative h-screen">
@@ -258,6 +307,167 @@
 
     <!-- App Title -->
     <div class="ml-4 text-xl font-semibold text-gray-700">15-Minute City</div>
+
+    <button
+      class="absolute right-3 text-xl p-2 rounded hover:bg-gray-100"
+      on:click={() => infoOpen.set(true)}
+      aria-label="Information"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="1.5"
+        stroke="currentColor"
+        class="size-6"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"
+        />
+      </svg>
+    </button>
+
+    {#if $infoOpen}
+      <!-- Overlay -->
+      <div
+        class="fixed inset-0 z-[20000] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+        role="dialog"
+        aria-modal="true"
+        tabindex="0"
+        on:click|self={() => infoOpen.set(false)}
+        on:keydown={(e) => e.key === "Escape" && infoOpen.set(false)}
+      >
+        <!-- Modal -->
+        <div
+          class="w-[min(900px,92vw)] max-h-[85vh] rounded-2xl bg-white shadow-2xl border border-black/10 overflow-hidden
+             animate-in fade-in zoom-in-95 duration-200"
+          on:click|stopPropagation={() => {}}
+        >
+          <!-- Header -->
+          <div class="flex items-center justify-between px-6 py-4 border-b">
+            <div>
+              <h2 class="text-lg font-semibold text-gray-900">
+                15-Minute City
+              </h2>
+              <p class="text-sm text-gray-600">
+                How the app works and what you can do
+              </p>
+            </div>
+            <button
+              class="h-9 w-9 grid place-items-center rounded-lg hover:bg-gray-100 text-gray-600"
+              aria-label="Close"
+              on:click={() => infoOpen.set(false)}
+            >
+              ✕
+            </button>
+          </div>
+
+          <!-- Scrollable Content -->
+          <div class="px-6 py-5 overflow-y-auto max-h-[calc(85vh-72px)]">
+            <!-- Hero section -->
+            <section class="space-y-3">
+              <h3 class="text-base font-semibold text-gray-900">Overview</h3>
+              <p class="text-sm leading-6 text-gray-700">
+                This application demonstrates the 15-minute city concept by
+                visualizing urban accessibility in Münster. Click anywhere on
+                the map to choose a starting location. Then select a transport
+                mode and travel time to explore which everyday amenities (such
+                as shops, schools, or cafés) can be reached within that limit.
+                The map updates interactively to help you understand how
+                accessible different parts of the city are under various
+                mobility scenarios.
+              </p>
+
+              <img
+                src={heroImg}
+                alt="15-minute city overview screenshot"
+                class="w-3/4 max-w-sm mx-auto rounded-xl border border-black/10"
+                loading="lazy"
+              />
+              <p class="text-xs text-gray-500">
+                Locations can be selected by 1. selecting your own location or
+                2. selecting a location manually.
+              </p>
+            </section>
+
+            <div class="my-6 border-t" />
+
+            <!-- Features grid -->
+            <section class="space-y-4">
+              <h3 class="text-base font-semibold text-gray-900">
+                Key Features
+              </h3>
+
+              <div class="grid gap-4 sm:grid-cols-2">
+                <div class="rounded-xl border border-black/10 p-4">
+                  <h4 class="text-sm font-semibold text-gray-900">
+                    Isochrone Map
+                  </h4>
+                  <p class="mt-1 text-sm text-gray-700 leading-6">
+                    Displays the reachable area within the selected time from
+                    your starting point.
+
+                  </p>
+                  <img
+                    src={poiImg}
+                    alt="Isochrone polygon example"
+                    class="mt-3 w-full rounded-lg border border-black/10"
+                    loading="lazy"
+                  />
+                </div>
+
+                <div class="rounded-xl border border-black/10 p-4">
+                  <h4 class="text-sm font-semibold text-gray-900">
+                    Amenity Heatmap
+                  </h4>
+                  <p class="mt-1 text-sm text-gray-700 leading-6">
+
+                    Shows where amenities are concentrated, making it easy to
+                    compare different areas at a glance.
+
+                  </p>
+                  <img
+                    src={heatmapImg}
+                    alt="Heatmap example"
+                    class="mt-3 w-full rounded-lg border border-black/10"
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <div class="my-6 border-t" />
+
+            <!-- How to use -->
+            <section class="space-y-3">
+              <h3 class="text-base font-semibold text-gray-900">How to use</h3>
+              <ol class="list-decimal pl-5 text-sm text-gray-700 space-y-2">
+                <li>Select a transport mode (walk / bike / car).</li>
+                <li>Click on the map to choose a starting point.</li>
+                <li>
+                  View reachable amenities and the score for that location.
+                </li>
+                <li>
+                  Toggle the heatmap to compare amenity density across Münster.
+                </li>
+              </ol>
+            </section>
+
+            <div class="my-6 border-t" />
+
+            <!-- Footer note -->
+            <section class="text-xs text-gray-500">
+              <p>
+                Data sources: OpenStreetMap (POIs), routing/isochrones provided
+                by the backend service.
+              </p>
+            </section>
+          </div>
+        </div>
+      </div>
+    {/if}
   </nav>
 
   <!-- ============================================
@@ -270,13 +480,16 @@
     {mode}
     {location}
     {heatmap}
+    amenities={poiData?.amenities || []}
     onModeSelect={handleModeSelect}
     onSelectLocation={handleSelectLocation}
+    onSearchSelect={handleSearchSelect}
     onClearSelection={handleClear}
   />
 
   <!-- Map Canvas -->
   <MapCanvas
+    bind:this={mapCanvasComponent}
     {mode}
     {location}
     {poiData}
@@ -377,7 +590,7 @@
 					"
         ></span>
       </div>
-      <div>
+      <div class="text-center">
         <p class="font-bold text-gray-900 m-0">Analyzing reachable area...</p>
         <p class="text-gray-600 text-sm m-0 mt-0.5">
           Finding amenities within 15 minutes

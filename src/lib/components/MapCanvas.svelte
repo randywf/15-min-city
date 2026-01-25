@@ -1,312 +1,582 @@
 <script lang="ts">
-	import { onMount } from "svelte";
-	import locationIcon from "$lib/assets/location.svg?raw";
-	import educationURL from "$lib/assets/education_rainbow.png";
-	import foodURL from "$lib/assets/food_Lime.png";
-	import Modal from "$lib/components/Modal.svelte";
-	import type { TransportMode } from "$lib/types/map";
-	import { MARKER_STYLES, ICON_CONFIG } from "$lib/constants/map";
-	import { toSentenceCase, getIconForAmenity } from "$lib/utils/map";
+  import { onMount } from "svelte";
+  import locationIcon from "$lib/assets/location.svg?raw";
+  import { infoOpen } from "$lib/constants/ui";
+  import Modal from "$lib/components/Modal.svelte";
+  import LayerPanel from "$lib/components/LayerPanel.svelte";
+  import type { TransportMode } from "$lib/types/map";
+  import { MARKER_STYLES } from "$lib/constants/map";
+  import { toSentenceCase } from "$lib/utils/map";
+  import { CATEGORY_COLORS, ISOCHRONE_COLORS } from "$lib/constants/colors";
+  import OutofBound from "$lib/components/OutofBound.svelte";
+  import GPSLoading from "$lib/components/GPSLoading.svelte";
 
-	// Props
-	export let mode: TransportMode;
-	export let location: {
-		selected: boolean;
-		lat: number | null;
-		lng: number | null;
-	};
-	export let selectingLocation: boolean;
-	export let poiData: {
-		amenities: any[];
-		polygon: any;
-	} | null = null;
+  let outofBoundComponent: OutofBound;
+  let isLoadingLocation = false;
 
-	// Event callbacks (Svelte 5 style)
-	export let onMapReady: ((event: { L: any; map: any }) => void) | undefined =
-		undefined;
-	export let onLocationSelected:
-		| ((event: { lat: number; lng: number }) => void)
-		| undefined = undefined;
-	export let onLocationRequested:
-		| ((event: { lat: number; lng: number }) => void)
-		| undefined = undefined;
-	export let onError: ((event: { message: string }) => void) | undefined =
-		undefined;
-	export let onCancelSelection: (() => void) | undefined = undefined;
+  // Props
+  export let mode: TransportMode;
+  export let location: {
+    selected: boolean;
+    lat: number | null;
+    lng: number | null;
+  };
+  export let selectingLocation: boolean;
+  export let poiData: {
+    amenities: any[];
+    polygon: any;
+  } | null = null;
 
-	let mapDiv!: HTMLDivElement;
-	let L: typeof import("leaflet") | null = null;
-	let map: import("leaflet").Map | null = null;
-	let userMarker: import("leaflet").Layer | null = null;
-	let area_oi: import("leaflet").GeoJSON<any> | null = null;
-	let poiMarkers: import("leaflet").Marker[] = [];
+  // Event callbacks
+  export let onMapReady: ((event: { L: any; map: any }) => void) | undefined =
+    undefined;
+  export let onLocationSelected:
+    | ((event: { lat: number; lng: number }) => void)
+    | undefined = undefined;
+  export let onLocationRequested:
+    | ((event: { lat: number; lng: number }) => void)
+    | undefined = undefined;
+  export let onError: ((event: { message: string }) => void) | undefined =
+    undefined;
+  export let onCancelSelection: (() => void) | undefined = undefined;
 
-	/**
-	 * Add/remove selecting-location class for cursor change
-	 */
-	$: if (map && L) {
-		const container = map.getContainer();
-		if (selectingLocation) {
-			container.classList.add("selecting-location");
-		} else {
-			container.classList.remove("selecting-location");
-		}
-	}
+  const CATEGORY_MAPPINGS: Record<string, string[]> = {
+    "Mobility & Parking": ["bicycle_parking", "parking", "fuel"],
+    Healthcare: ["clinic", "hospital", "pharmacy"],
+    Education: ["school", "library"],
+    Entertainment: ["theatre", "cinema"],
+    "Food & Beverage": [
+      "restaurant",
+      "bar",
+      "bbq",
+      "biergarten",
+      "cafe",
+      "fast_food",
+      "food_court",
+      "ice_cream",
+      "pub",
+    ],
+    Other: [
+      "place_of_worship:christian",
+      "place_of_worship:islamic",
+      "place_of_worship:buddhist",
+      "place_of_worship:hindu",
+      "place_of_worship:jewish",
+      "toilets",
+    ],
+  };
 
-	/**
-	 * When POI data changes, render it on the map
-	 */
-	$: if (L && map) {
-		if (poiData) {
-			renderPoiData(poiData);
-		} else {
-			clearMapLayers();
-		}
-	}
+  let enabledCategories: Record<string, boolean> = {
+    "Mobility & Parking": true,
+    Healthcare: true,
+    Education: true,
+    Entertainment: true,
+    "Food & Beverage": true,
+    Other: true,
+  };
 
-	/**
-	 * Initialize the Leaflet library
-	 */
-	async function initializeLeaflet() {
-		const leaflet = await import("$lib/leaflet-client");
-		L = leaflet.default as any;
-		console.log("[leaflet] typeof heatLayer =", typeof (L as any).heatLayer);
-	}
+  let showIsochrone = true;
+  let panelExpanded = false;
 
-	/**
-	 * Create tile layers
-	 */
-	function createTileLayers() {
-		const osm = L!.tileLayer(
-			"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-			{ maxZoom: 19, attribution: "© OpenStreetMap contributors" },
-		);
+  const categoryOrder = Object.keys(CATEGORY_MAPPINGS);
 
-		const satellite = L!.tileLayer(
-			"https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
-			{
-				maxZoom: 20,
-				subdomains: ["mt0", "mt1", "mt2", "mt3"],
-				attribution: "© Google Satellite",
-			},
-		);
+  $: hasData = poiData && (poiData.amenities.length > 0 || poiData.polygon);
 
-		const topo = L!.tileLayer(
-			"https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-			{
-				maxZoom: 17,
-				attribution: "© OpenTopoMap (CC-BY-SA)",
-			},
-		);
+  let mapDiv!: HTMLDivElement;
+  let L: typeof import("leaflet") | null = null;
+  let map: import("leaflet").Map | null = null;
+  let userMarker: import("leaflet").Layer | null = null;
+  let area_oi: import("leaflet").GeoJSON<any> | null = null;
+  let boundaryLayer: import("leaflet").GeoJSON<any> | null = null;
+  let poiMarkers: L.Layer[] = [];
 
-		return { osm, satellite, topo };
-	}
+  // Handlers for LayerPanel
+  function togglePanel() {
+    panelExpanded = !panelExpanded;
+  }
 
-	/**
-	 * Setup the map instance
-	 */
-	function setupMapInstance(layers: any) {
-		map = L!.map(mapDiv, {
-			center: [51.96, 7.62],
-			zoom: 12,
-			layers: [layers.osm],
-		});
+  function toggleIsochrone(value: boolean) {
+    showIsochrone = value;
+  }
 
-		const baseLayers = {
-			OpenStreetMap: layers.osm,
-			Satellite: layers.satellite,
-			Topographic: layers.topo,
-		};
-		L!.control.layers(baseLayers).addTo(map);
-		map.zoomControl.setPosition("bottomright");
+  function toggleCategory(category: string) {
+    enabledCategories = {
+      ...enabledCategories,
+      [category]: !enabledCategories[category],
+    };
+  }
 
-		// Call map ready callback
-		onMapReady?.({ L, map });
-	}
+  // Map amenity type to category
+  function findCategoryForAmenity(
+    amenityType: string | undefined,
+  ): string | null {
+    if (!amenityType) return null;
+    const match = Object.entries(CATEGORY_MAPPINGS).find(([, types]) =>
+      types.includes(amenityType),
+    );
+    return match ? match[0] : null;
+  }
 
-	/**
-	 * Register map event handlers
-	 */
-	function registerMapEventHandlers() {
-		map!.on("click", async (e: any) => {
-			if (selectingLocation) {
-				const { lat, lng } = e.latlng;
-				map!.setView([lat, lng], 15);
+  /**
+   * Ray casting algorithm for point-in-polygon
+   */
+  function isPointInPolygon(point: L.LatLng, polygon: L.LatLng[]): boolean {
+    let inside = false;
+    const x = point.lng,
+      y = point.lat;
 
-				// Remove old marker
-				if (userMarker) {
-					map!.removeLayer(userMarker);
-				}
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const xi = polygon[i].lng,
+        yi = polygon[i].lat;
+      const xj = polygon[j].lng,
+        yj = polygon[j].lat;
 
-				// Create new marker
-				userMarker = L!.circleMarker([lat, lng], MARKER_STYLES).addTo(map!);
+      const intersect =
+        yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
 
-				// Call location selected callback
-				onLocationSelected?.({ lat, lng });
-			}
-		});
-	}
+      if (intersect) inside = !inside;
+    }
 
-	/**
-	 * Create a user marker
-	 */
-	function createUserMarker(lat: number, lng: number): import("leaflet").Layer {
-		return L!.circleMarker([lat, lng], MARKER_STYLES).addTo(map!);
-	}
+    return inside;
+  }
 
-	/**
-	 * Clear all POI markers and polygons from map
-	 */
-	function clearMapLayers() {
-		poiMarkers.forEach((marker) => map!.removeLayer(marker));
-		poiMarkers = [];
+  /**
+   * Check if point is within boundary
+   */
+  function isPointInBoundary(lat: number, lng: number): boolean {
+    if (!boundaryLayer) return false;
 
-		if (area_oi) {
-			map!.removeLayer(area_oi);
-			area_oi = null;
-		}
-	}
+    const point = L!.latLng(lat, lng);
+    let isInside = false;
 
-	/**
-	 * Render POI data (polygon and markers)
-	 */
-	function renderPoiData(data: { amenities: any[]; polygon: any }) {
-		if (!L || !map) return;
+    boundaryLayer.eachLayer((layer: any) => {
+      if (layer.getBounds && layer.getBounds().contains(point)) {
+        const latLngs = layer.getLatLngs();
 
-		// Clear previous data
-		clearMapLayers();
+        // Handle MultiPolygon (array of arrays)
+        if (Array.isArray(latLngs)) {
+          for (const polygonRing of latLngs) {
+            const rings = Array.isArray(polygonRing[0])
+              ? polygonRing
+              : [polygonRing];
+            for (const ring of rings) {
+              if (isPointInPolygon(point, ring)) {
+                isInside = true;
+                return;
+              }
+            }
+          }
+        }
+      }
+    });
 
-		// Render polygon
-		if (data.polygon) {
-			area_oi = L.geoJSON(data.polygon).addTo(map);
-		}
+    return isInside;
+  }
 
-		// Render POI markers
-		if (data.amenities?.length) {
-			const icons = {
-				food: L.icon({ iconUrl: foodURL, ...ICON_CONFIG }),
-				education: L.icon({ iconUrl: educationURL, ...ICON_CONFIG }),
-			};
+  /**
+   * Add the Münster boundary layer
+   */
+  async function addMuensterBoundary() {
+    if (!L || !map) return;
+    if (boundaryLayer) map.removeLayer(boundaryLayer);
 
-			data.amenities.forEach((poi: any) => {
-				if (poi.lat && poi.lon) {
-					const selectedIcon = getIconForAmenity(poi, icons);
-					const amenityLabel = toSentenceCase(poi.amenity);
-					const marker = L!
-						.marker([poi.lat, poi.lon], {
-							icon: selectedIcon,
-							title: amenityLabel,
-						})
-						.addTo(map!)
-						.bindPopup(`<b>Category: </b><b>${amenityLabel}</b>`);
+    try {
+      const response = await fetch("/data/muenster_boundary.geojson");
+      let muensterBoundary = await response.json();
 
-					poiMarkers.push(marker);
-				}
-			});
-		}
-	}
+      // Remove CRS to avoid parsing issues
+      if (muensterBoundary.crs) {
+        delete muensterBoundary.crs;
+      }
 
-	/**
-	 * Handle browser location request
-	 */
-	function requestBrowserLocation() {
-		if (!("geolocation" in navigator)) {
-			alert("Geolocation not supported.");
-			return;
-		}
+      console.log("Boundary features:", muensterBoundary.features?.length);
 
-		navigator.geolocation.getCurrentPosition(
-			(pos) => {
-				const { latitude, longitude } = pos.coords;
-				if (map) {
-					map.setView([latitude, longitude], 15);
-					onLocationRequested?.({ lat: latitude, lng: longitude });
-				}
-			},
-			(err) => {
-				console.error(err);
-				onError?.({ message: "Could not retrieve location." });
-			},
-			{ enableHighAccuracy: true },
-		);
-	}
+      boundaryLayer = L.geoJSON(muensterBoundary, {
+        style: () => ({
+          color: "#078A71",
+          weight: 3,
+          fill: false,
+          fillOpacity: 0,
+        }),
+        interactive: false,
+      }).addTo(map!);
 
-	/**
-	 * Pan to user's saved location
-	 */
-	function goToMyLocation() {
-		if (location.lat && location.lng && map) {
-			map.setView([location.lat, location.lng], 16, { animate: true });
-		} else {
-			alert("Location not available yet");
-		}
-	}
+      // Fit map to boundary
+      const bounds = boundaryLayer.getBounds();
+      map!.fitBounds(bounds);
 
-	/**
-	 * Update user marker when location changes
-	 */
-	$: if (L && map) {
-		if (location.lat && location.lng && location.selected) {
-			// Remove old marker
-			if (userMarker) {
-				map.removeLayer(userMarker);
-			}
-			// Create new marker
-			userMarker = createUserMarker(location.lat, location.lng);
-		} else {
-			// Clear marker when location is not selected
-			if (userMarker) {
-				map.removeLayer(userMarker);
-				userMarker = null;
-			}
-		}
-	}
+      console.log("Münster boundary loaded");
+    } catch (e) {
+      console.error("Failed to load Münster boundary:", e);
+    }
+  }
 
-	onMount(async () => {
-		await initializeLeaflet();
-		const layers = createTileLayers();
-		setupMapInstance(layers);
-		registerMapEventHandlers();
-	});
+  /**
+   * Exported functions for parent component
+   */
+  export function checkBoundary(lat: number, lng: number): boolean {
+    return isPointInBoundary(lat, lng);
+  }
+
+  export function showBoundaryError() {
+    outofBoundComponent.showOutOfBoundError();
+  }
+
+  /**
+   * Initialize the Leaflet library
+   */
+  async function initializeLeaflet() {
+    const leaflet = await import("$lib/leaflet-client");
+    L = leaflet.default as any;
+    console.log("[leaflet] typeof heatLayer =", typeof (L as any).heatLayer);
+  }
+
+  /**
+   * Create tile layers
+   */
+  function createTileLayers() {
+    const stadiaDark = L!.tileLayer(
+      "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.{ext}",
+      {
+        minZoom: 0,
+        maxZoom: 20,
+        attribution:
+          '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        ext: "png",
+      },
+    );
+
+    const dark = L!.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      { maxZoom: 19, attribution: "© OpenStreetMap contributors, © CartoDB" },
+    );
+
+    const osm = L!.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      { maxZoom: 19, attribution: "© OpenStreetMap contributors" },
+    );
+
+    const satellite = L!.tileLayer(
+      "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      {
+        maxZoom: 19,
+        attribution: "© Esri, Maxar, Earthstar Geographics",
+      },
+    );
+
+    const topo = L!.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+      {
+        maxZoom: 20,
+        attribution: "Tiles © Esri — Source: Esri, USGS, NOAA",
+      },
+    );
+
+    return { osm, satellite, topo, dark, stadiaDark };
+  }
+
+  /**
+   * Setup the map instance
+   */
+  function setupMapInstance(layers: any) {
+    map = L!.map(mapDiv, {
+      center: [51.96, 7.62],
+      zoom: 12,
+      layers: [layers.stadiaDark],
+    });
+
+    const baseLayers = {
+      "Stadia Dark": layers.stadiaDark,
+      Dark: layers.dark,
+      OpenStreetMap: layers.osm,
+      Satellite: layers.satellite,
+      Topographic: layers.topo,
+    };
+    L!.control.layers(baseLayers).addTo(map);
+    map.zoomControl.setPosition("bottomright");
+
+    // Call map ready callback
+    onMapReady?.({ L, map });
+  }
+
+  /**
+   * Create a user marker
+   */
+  function createUserMarker(lat: number, lng: number): import("leaflet").Layer {
+    return L!.circleMarker([lat, lng], MARKER_STYLES).addTo(map!);
+  }
+
+  /**
+   * Register map event handlers
+   */
+  function registerMapEventHandlers() {
+    map!.on("click", async (e: any) => {
+      if (selectingLocation) {
+        const { lat, lng } = e.latlng;
+
+        // Check if point is within Münster boundary
+        if (!isPointInBoundary(lat, lng)) {
+          outofBoundComponent.showOutOfBoundError();
+          return;
+        }
+
+        map!.setView([lat, lng], 15);
+
+        // Remove old marker
+        if (userMarker) {
+          map!.removeLayer(userMarker);
+        }
+
+        // Create new marker
+        userMarker = createUserMarker(lat, lng);
+
+        // Call location selected callback
+        onLocationSelected?.({ lat, lng });
+      }
+    });
+  }
+
+  /**
+   * Clear all POI markers and polygons from map
+   */
+  function clearMapLayers() {
+    poiMarkers.forEach((marker) => map!.removeLayer(marker));
+    poiMarkers = [];
+
+    if (area_oi) {
+      map!.removeLayer(area_oi);
+      area_oi = null;
+    }
+  }
+
+  /**
+   * Render POI data (polygon and markers)
+   */
+  function renderPoiData(data: { amenities: any[]; polygon: any }) {
+    if (!L || !map) return;
+
+    // Clear previous data
+    clearMapLayers();
+
+    // Render polygon
+    if (data.polygon && showIsochrone) {
+      area_oi = L.geoJSON(data.polygon, {
+        style: {
+          color: ISOCHRONE_COLORS.stroke,
+          fillColor: ISOCHRONE_COLORS.fill,
+          fillOpacity: 0.1,
+          weight: 1,
+        },
+      }).addTo(map);
+    }
+
+    // Render POI markers
+    if (data.amenities?.length) {
+      const enabledAmenityTypes = new Set<string>();
+      Object.entries(enabledCategories).forEach(([cat, enabled]) => {
+        if (enabled) {
+          CATEGORY_MAPPINGS[cat]?.forEach((t) => enabledAmenityTypes.add(t));
+        }
+      });
+
+      if (enabledAmenityTypes.size === 0) return;
+
+      const baseMarkerStyle = { ...MARKER_STYLES, radius: 5 };
+
+      data.amenities.forEach((poi: any) => {
+        if (poi.lat && poi.lon) {
+          const amenityType = poi.amenity ?? poi.tags?.amenity;
+          const category = findCategoryForAmenity(amenityType);
+          if (
+            !amenityType ||
+            !category ||
+            !enabledAmenityTypes.has(amenityType)
+          )
+            return;
+
+          const color = CATEGORY_COLORS[category] ?? "#6b7280";
+
+          const marker = L!
+            .circleMarker([poi.lat, poi.lon], {
+              ...baseMarkerStyle,
+              color,
+              fillColor: color,
+              fillOpacity: 0.8,
+            })
+            .addTo(map!)
+            .bindPopup(
+              `<b>Category:</b> ${category}<br/><b>Amenity:</b> ${toSentenceCase(amenityType)}`,
+            );
+
+          poiMarkers.push(marker);
+        }
+      });
+    }
+  }
+
+  /**
+   * Handle browser location request
+   */
+  function requestBrowserLocation() {
+    if (!("geolocation" in navigator)) {
+      console.log("Geolocation not supported");
+      return;
+    }
+
+    isLoadingLocation = true; // ← Show loading screen
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        isLoadingLocation = false; // ← Hide loading screen
+
+        // Check if location is within boundary before proceeding
+        if (!isPointInBoundary(latitude, longitude)) {
+          outofBoundComponent.showOutOfBoundError();
+          return;
+        }
+
+        if (map) {
+          map.setView([latitude, longitude], 15);
+          onLocationRequested?.({ lat: latitude, lng: longitude });
+        }
+      },
+      (err) => {
+        // Silently log the error - don't block the user
+        isLoadingLocation = false; // ← Hide loading screen on error
+        console.log("Location request error (code " + err.code + ")");
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 15000,
+        maximumAge: 30000,
+      },
+    );
+  }
+
+  /**
+   * Pan to user's saved location
+   */
+  function goToMyLocation() {
+    if (location.lat && location.lng && map) {
+      map.setView([location.lat, location.lng], 16, { animate: true });
+    } else {
+      alert("Location not available yet");
+    }
+  }
+
+  /**
+   * Add/remove selecting-location class for cursor change
+   */
+  $: if (map && L) {
+    const container = map.getContainer();
+    if (selectingLocation) {
+      container.classList.add("selecting-location");
+    } else {
+      container.classList.remove("selecting-location");
+    }
+  }
+
+  /**
+   * When POI data changes, render it on the map
+   */
+  $: if (L && map) {
+    if (poiData) {
+      enabledCategories;
+      showIsochrone;
+      renderPoiData(poiData);
+    } else {
+      clearMapLayers();
+    }
+  }
+
+  /**
+   * Update user marker when location changes
+   */
+  $: if (L && map) {
+    if (location.lat && location.lng && location.selected) {
+      // Remove old marker
+      if (userMarker) {
+        map.removeLayer(userMarker);
+      }
+      // Create new marker
+      userMarker = createUserMarker(location.lat, location.lng);
+    } else {
+      // Clear marker when location is not selected
+      if (userMarker) {
+        map.removeLayer(userMarker);
+        userMarker = null;
+      }
+    }
+  }
+
+  onMount(async () => {
+    await initializeLeaflet();
+    const layers = createTileLayers();
+    setupMapInstance(layers);
+    registerMapEventHandlers();
+    await addMuensterBoundary();
+  });
 </script>
 
 <!-- Map Container -->
 <div bind:this={mapDiv} class="absolute inset-0 z-[1] top-14"></div>
 
-<!-- Floating Map Controls -->
-<div class="absolute bottom-28 right-3 z-[10000]">
-	<button
-		class="w-9 h-9 rounded-full bg-white shadow-lg border flex items-center justify-center hover:bg-gray-100"
-		on:click={goToMyLocation}
-	>
-		<span class="w-6 h-6 [&>svg]:w-full [&>svg]:h-full"
-			>{@html locationIcon}</span
-		>
-	</button>
-</div>
+<LayerPanel
+  hasData={!!hasData}
+  {panelExpanded}
+  onTogglePanel={togglePanel}
+  {showIsochrone}
+  onToggleIsochrone={toggleIsochrone}
+  {poiData}
+  {categoryOrder}
+  categoryColors={CATEGORY_COLORS}
+  {enabledCategories}
+  onToggleCategory={toggleCategory}
+/>
 
-<div class="absolute bottom-40 right-3 z-[10000]">
-	<button
-		class="w-9 h-9 rounded-full bg-white shadow-lg border flex items-center justify-center hover:bg-gray-100"
-		on:click={requestBrowserLocation}
-	>
-		📍
-	</button>
-</div>
+<!-- Out of Bound Error -->
+<OutofBound bind:this={outofBoundComponent} />
+
+<!-- GPS Loading Screen -->
+<GPSLoading show={isLoadingLocation} />
+
+<!-- Floating Map Controls -->
+{#if !$infoOpen}
+  <div class="absolute bottom-28 right-3 z-[10000]">
+    <button
+      class="w-9 h-9 rounded-full bg-white shadow-lg border flex items-center justify-center hover:bg-gray-100"
+      on:click={goToMyLocation}
+    >
+      <span class="w-6 h-6 [&>svg]:w-full [&>svg]:h-full"
+        >{@html locationIcon}</span
+      >
+    </button>
+  </div>
+
+  <div class="absolute bottom-40 right-3 z-[10000]">
+    <button
+      class="w-9 h-9 rounded-full bg-white shadow-lg border flex items-center justify-center hover:bg-gray-100"
+      on:click={requestBrowserLocation}
+    >
+      📍
+    </button>
+  </div>
+{/if}
 
 <!-- Location Selection Modal -->
 <Modal show={selectingLocation} onClose={() => onCancelSelection?.()}>
-	<h2>Selecting location...</h2>
-	<p>Close this message to cancel.</p>
+  <h2>Selecting location...</h2>
+  <p>Close this message to cancel.</p>
 </Modal>
 
 <style>
-	/* Selecting location mode */
-	:global(.selecting-location) {
-		cursor: crosshair !important;
-	}
+  /* Selecting location mode */
+  :global(.selecting-location) {
+    cursor: crosshair !important;
+  }
 
-	:global(.selecting-location.leaflet-container.leaflet-drag-target) {
-		cursor: grabbing !important;
-	}
+  :global(.selecting-location.leaflet-container.leaflet-drag-target) {
+    cursor: grabbing !important;
+  }
 </style>
