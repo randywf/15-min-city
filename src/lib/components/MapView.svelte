@@ -308,9 +308,6 @@
     <!-- App Title -->
     <div class="ml-4 text-xl font-semibold text-gray-700">15-Minute City</div>
 
-    <!-- App Title -->
-    <div class="ml-4 text-xl font-semibold text-gray-700">15-Minute City</div>
-
     <button
       class="absolute right-3 text-xl p-2 rounded hover:bg-gray-100"
       on:click={() => infoOpen.set(true)}
@@ -411,6 +408,7 @@
                   <p class="mt-1 text-sm text-gray-700 leading-6">
                     Displays the reachable area within the selected time from
                     your starting point.
+
                   </p>
                   <img
                     src={poiImg}
@@ -425,8 +423,10 @@
                     Amenity Heatmap
                   </h4>
                   <p class="mt-1 text-sm text-gray-700 leading-6">
+
                     Shows where amenities are concentrated, making it easy to
                     compare different areas at a glance.
+
                   </p>
                   <img
                     src={heatmapImg}
