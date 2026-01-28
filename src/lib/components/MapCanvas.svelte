@@ -302,9 +302,23 @@
   /**
    * Create a user marker
    */
-  function createUserMarker(lat: number, lng: number): import("leaflet").Layer {
-    return L!.circleMarker([lat, lng], MARKER_STYLES).addTo(map!);
-  }
+  function createUserMarker(lat: number, lng: number) {
+  const icon = L!.divIcon({
+    className: "",
+    html: `<div style="
+      width:12px;
+      height:12px;
+      background:red;
+      border-radius:50%;
+      border:2px solid white;
+      box-shadow:0 0 4px rgba(0,0,0,.4);
+    "></div>`,
+    iconSize: [12, 12],
+    iconAnchor: [6, 6],
+  });
+
+  return L!.marker([lat, lng], { icon }).addTo(map!);
+}
 
   /**
    * Register map event handlers
